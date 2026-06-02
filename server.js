@@ -1,73 +1,49 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import Anthropic from '@anthropic-ai/sdk';
-
-// Load environment variables from a .env file
-dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-// Enable CORS so your frontend application can communicate with this backend
-app.use(cors({
-  origin: '*' // In production, replace with your specific frontend domain
-}));
-
-// Enable JSON parsing for incoming request bodies
+app.use(cors());
 app.use(express.json());
 
-// Initialize the official Anthropic client
-// It automatically looks for process.env.ANTHROPIC_API_KEY
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// ⚠️ PUT YOUR ACTUAL OPENROUTER KEY INSIDE THESE SINGLE QUOTES:
+const OPENROUTER_KEY = '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';
 
-/**
- * POST /api/generate
- * Handles prompt routing to the Anthropic API securely
- */
 app.post('/api/generate', async (req, res) => {
-  const { systemPrompt, userPrompt } = req.body;
-
-  // Basic validation
-  if (!userPrompt) {
-    return res.status(400).json({ error: 'User prompt is required.' });
-  }
-
   try {
-    // Call the Anthropic Messages API
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022', // Standard production model
-      max_tokens: 1500,
-      system: systemPrompt || "You are a helpful coding assistant.",
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
+    const { systemPrompt, userMessage } = req.body;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "anthropic/claude-sonnet-4.6", 
+	max_tokens: 100,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage }
+        ]
+      })
     });
 
-    // Extract text blocks from the API response layout
-    const textOutput = response.content
-      .map(block => block.text || '')
-      .join('');
-    
-    // Send the compiled response text back to the browser client
-    res.json({ text: textOutput });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "OpenRouter failed connection");
+    }
+
+    const textOutput = data.choices[0].message.content;
+    res.json({
+      content: [{ type: "text", text: textOutput }]
+    });
 
   } catch (error) {
-    console.error('Anthropic API Error:', error);
-    
-    // Graceful error responses to pass back to your frontend UI
-    res.status(500).json({ 
-      error: 'Failed to communicate with AI service.',
-      details: error.message 
-    });
+    console.error('API Proxy Error:', error);
+    res.status(500).json({ error: error.message || 'Failed to communicate with AI' });
   }
 });
 
-// Start the local development server
-app.listen(port, () => {
-  console.log(`=================================================`);
-  console.log(`  Backend Server running on http://localhost:${port}`);
-  console.log(`=================================================`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`OpenRouter Proxy running on port ${PORT}`));
