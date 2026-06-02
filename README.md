@@ -1,6 +1,6 @@
 # WOWERS
 
-WOWERS is a browser-based HTML/CSS/JavaScript generation workspace with a small Express proxy for OpenRouter chat completions.
+WOWERS is a browser-based HTML/CSS/JavaScript generation workspace with built-in starter templates and a small Express proxy for OpenRouter chat completions.
 
 ## Setup
 
@@ -23,7 +23,7 @@ If `OPENROUTER_KEY` is configured on the server, the app unlocks automatically. 
 npm start
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. Pick any quick template to load working code instantly, or enter your own prompt and click **Generate with AI** to customize it with OpenRouter.
 
 ## Checks
 

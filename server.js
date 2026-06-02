@@ -13,12 +13,18 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.static(__dirname));
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3-1-8b-instruct:free';
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
 const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '1500', 10);
 
 function getOpenRouterKey(req) {
   const headerKey = req.get('x-openrouter-key');
   return (process.env.OPENROUTER_KEY || headerKey || '').trim();
+}
+
+function shouldRetryWithoutJsonMode(status, data) {
+  if (status !== 400 && status !== 422) return false;
+  const message = String(data?.error?.message || data?.message || '').toLowerCase();
+  return message.includes('response_format') || message.includes('json') || message.includes('structured');
 }
 
 app.get('/api/health', (_req, res) => {
@@ -30,6 +36,8 @@ app.get('/api/config', (_req, res) => {
 });
 
 app.post('/api/generate', async (req, res) => {
+  let timeout;
+
   try {
     const { systemPrompt, userMessage, model } = req.body ?? {};
     const openRouterKey = getOpenRouterKey(req);
@@ -47,29 +55,47 @@ app.post('/api/generate', async (req, res) => {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    timeout = setTimeout(() => controller.abort(), 45000);
 
-    const response = await fetch(OPENROUTER_URL, {
+    const requestPayload = {
+      model: model || DEFAULT_MODEL,
+      max_tokens: Number.isFinite(MAX_TOKENS) ? MAX_TOKENS : 1500,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      response_format: { type: 'json_object' }
+    };
+
+    const openRouterHeaders = {
+      Authorization: `Bearer ${openRouterKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+      'X-Title': 'WOWERS Web Helper Studio'
+    };
+
+    let response = await fetch(OPENROUTER_URL, {
       method: 'POST',
       signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${openRouterKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
-        'X-Title': 'WOWERS Web Helper Studio'
-      },
-      body: JSON.stringify({
-        model: model || DEFAULT_MODEL,
-        max_tokens: Number.isFinite(MAX_TOKENS) ? MAX_TOKENS : 1500,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        response_format: { type: 'json_object' }
-      })
-    }).finally(() => clearTimeout(timeout));
+      headers: openRouterHeaders,
+      body: JSON.stringify(requestPayload)
+    });
 
-    const data = await response.json().catch(() => ({}));
+    let data = await response.json().catch(() => ({}));
+
+    if (!response.ok && shouldRetryWithoutJsonMode(response.status, data)) {
+      const fallbackPayload = { ...requestPayload };
+      delete fallbackPayload.response_format;
+      response = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: openRouterHeaders,
+        body: JSON.stringify(fallbackPayload)
+      });
+      data = await response.json().catch(() => ({}));
+    }
+
+    if (timeout) clearTimeout(timeout);
 
     if (!response.ok) {
       const message = data?.error?.message || data?.message || 'OpenRouter request failed.';
@@ -83,6 +109,7 @@ app.post('/api/generate', async (req, res) => {
 
     res.json({ content: [{ type: 'text', text: textOutput }] });
   } catch (error) {
+    if (timeout) clearTimeout(timeout);
     const isAbort = error?.name === 'AbortError';
     console.error('API Proxy Error:', error);
     res.status(isAbort ? 504 : 500).json({ error: isAbort ? 'OpenRouter request timed out.' : error.message || 'Failed to communicate with AI.' });
