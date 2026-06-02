@@ -290,6 +290,8 @@ body.auth-mode .workspace-wrapper { display: none; }
   transition: background 0.2s;
 }
 .generate-btn:hover { background: var(--purple-hover); }
+.generate-btn:disabled { opacity: 0.65; cursor: wait; }
+.generate-btn.is-loading { background: linear-gradient(135deg, #64748b, #475569); }
 
 /* ============ CENTER OUTPUT ============ */
 .center-output {
@@ -788,6 +790,8 @@ body.auth-mode .workspace-wrapper { display: none; }
   transition: background 0.2s;
 }
 .generate-btn:hover { background: var(--purple-hover); }
+.generate-btn:disabled { opacity: 0.65; cursor: wait; }
+.generate-btn.is-loading { background: linear-gradient(135deg, #64748b, #475569); }
 
 /* ============ CENTER OUTPUT ============ */
 .center-output {
