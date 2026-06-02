@@ -2,10 +2,11 @@
   "name": "css-js-maker-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "AI Code Generation Backend Server",
+  "description": "WOWERS frontend AI code generation workspace and OpenRouter proxy server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --check server.js && node --check script.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.33.0",
@@ -14,4 +15,3 @@
     "express": "^4.21.0"
   }
 }
-

@@ -15,14 +15,29 @@ window.addEventListener('DOMContentLoaded', () => {
   if(document.getElementById('css-preview-editor')) document.getElementById('css-preview-editor').value = appState.css.placeholderHtml;
   if(document.getElementById('js-preview-editor')) document.getElementById('js-preview-editor').value = appState.js.placeholderHtml;
 
-  if (sessionStorage.getItem('openrouter_key')) {
-    if(document.getElementById('apikey-input')) document.getElementById('apikey-input').value = sessionStorage.getItem('openrouter_key');
-    if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
-    syncRuntimeSandbox('html');
-    syncRuntimeSandbox('css');
-    syncRuntimeSandbox('js');
+  const storedApiKey = sessionStorage.getItem('openrouter_key');
+  if (storedApiKey) {
+    if(document.getElementById('apikey-input')) document.getElementById('apikey-input').value = storedApiKey;
+    unlockWorkspace();
+    return;
   }
+
+  fetch('/api/config')
+    .then(response => response.ok ? response.json() : null)
+    .then(config => {
+      if(config?.hasServerKey) unlockWorkspace();
+    })
+    .catch(() => {
+      // Keep auth mode active when the static page is opened without the backend server.
+    });
 });
+
+function unlockWorkspace() {
+  if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
+  syncRuntimeSandbox('html');
+  syncRuntimeSandbox('css');
+  syncRuntimeSandbox('js');
+}
 
 function saveApiKey() {
   const keyInput = document.getElementById('apikey-input');
@@ -31,10 +46,7 @@ function saveApiKey() {
   if (keyVal) {
     sessionStorage.setItem('openrouter_key', keyVal);
     showGlobalToast("OpenRouter Engine connected successfully!");
-    if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
-    syncRuntimeSandbox('html');
-    syncRuntimeSandbox('css');
-    syncRuntimeSandbox('js');
+    unlockWorkspace();
   } else {
     alert("Please insert a valid OpenRouter token key.");
   }
@@ -96,11 +108,7 @@ function triggerLiveAiGeneration() {
 
 // REAL LIVE OPENROUTER INTERFACE ROUTINE
 async function generateAiCode(lang) {
-  const apiKey = sessionStorage.getItem('openrouter_key');
-  if(!apiKey) {
-    alert("API authentication credentials missing. Provide an OpenRouter key inside the header configuration box.");
-    return;
-  }
+  const apiKey = sessionStorage.getItem('openrouter_key') || '';
 
   const promptInput = document.getElementById(`${lang}-prompt-input`);
   if(!promptInput) return;
@@ -136,29 +144,26 @@ async function generateAiCode(lang) {
   `;
 
   try {
-    const apiServerResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
+    const apiServerResponse = await fetch('/api/generate', {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": window.location.href,
-        "X-Title": "Web Helper Studio Environment"
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'x-openrouter-key': apiKey } : {})
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3-1-8b-instruct:free",
-        messages: [
-          { role: "system", content: structuralSystemBlueprintPrompt },
-          { role: "user", content: `Process component code layers generation formatting following target instructions.` }
-        ],
-        response_format: { type: "json_object" }
+        systemPrompt: structuralSystemBlueprintPrompt,
+        userMessage: 'Process component code layers generation formatting following target instructions.'
       })
     });
 
-    if(!apiServerResponse.ok) throw new Error("API call transmission processing error.");
-    
-    const operationalDataResult = await apiServerResponse.json();
-    const cleanContentString = operationalDataResult.choices[0].message.content.trim();
-    const structuralCodeMatrix = JSON.parse(cleanContentString);
+    const operationalDataResult = await apiServerResponse.json().catch(() => ({}));
+
+    if(!apiServerResponse.ok) {
+      throw new Error(operationalDataResult.error || 'API call transmission processing error.');
+    }
+
+    const cleanContentString = extractTextPayload(operationalDataResult).trim();
+    const structuralCodeMatrix = parseGeneratedJson(cleanContentString);
 
     const htmlEditor = document.getElementById('html-preview-editor');
     const cssEditor = document.getElementById('css-preview-editor');
@@ -190,7 +195,10 @@ async function generateAiCode(lang) {
         codeTarget.textContent = structuralCodeMatrix[pLang] || '';
       }
       if(explanationContainer && structuralCodeMatrix.explanation) {
-        explanationContainer.innerHTML = `<p>${structuralCodeMatrix.explanation}</p>`;
+        explanationContainer.replaceChildren();
+        const explanationParagraph = document.createElement('p');
+        explanationParagraph.textContent = structuralCodeMatrix.explanation;
+        explanationContainer.appendChild(explanationParagraph);
       }
     });
 
@@ -202,8 +210,49 @@ async function generateAiCode(lang) {
 
   } catch (error) {
     console.error("AI Generation processing fault details: ", error);
-    alert("AI compilation module error encountered. Please check your OpenRouter Key settings.");
+    alert(error.message || "AI compilation module error encountered. Please check your OpenRouter Key settings.");
   }
+}
+
+
+function extractTextPayload(apiResponse) {
+  const content = apiResponse?.content;
+  if (Array.isArray(content)) {
+    return content
+      .map(item => (typeof item === 'string' ? item : item?.text || ''))
+      .join('');
+  }
+
+  if (typeof apiResponse?.text === 'string') return apiResponse.text;
+  if (typeof apiResponse?.content === 'string') return apiResponse.content;
+  return '';
+}
+
+function parseGeneratedJson(rawText) {
+  if (!rawText) throw new Error('AI returned an empty response.');
+
+  const withoutFence = rawText
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(withoutFence);
+  } catch (_initialError) {
+    const firstBrace = withoutFence.indexOf('{');
+    const lastBrace = withoutFence.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error('AI response was not valid JSON.');
+  }
+}
+
+function sanitizeRunnableScript(sourceCode) {
+  return String(sourceCode || '')
+    .replace(/^\s*import\s+[^;]+;?\s*$/gm, '')
+    .replace(/\bexport\s+default\s+/g, '')
+    .replace(/\bexport\s+(?=(async\s+)?function|class|const|let|var)/g, '');
 }
 
 function syncRuntimeSandbox(lang) {
@@ -214,7 +263,7 @@ function syncRuntimeSandbox(lang) {
   const liveCss = document.getElementById('css-preview-editor') ? document.getElementById('css-preview-editor').value : appState.css.activeCode;
   const liveJs = document.getElementById('js-preview-editor') ? document.getElementById('js-preview-editor').value : appState.js.activeCode;
 
-  const runnableScript = liveJs.replace(/export\s+function\s+\w+\(\)\s*\{/, '').replace(/\}$/, '');
+  const runnableScript = sanitizeRunnableScript(liveJs);
 
   let runtimeBlobContext = `
     <!DOCTYPE html>
@@ -230,7 +279,8 @@ function syncRuntimeSandbox(lang) {
       ${liveHtml}
       <script>
         try {
-          ${runnableScript}
+          const userScript = ${JSON.stringify(runnableScript)};
+          new Function(userScript)();
         } catch(e) { console.error("Sandbox Execution Error:", e); }
       </script>
     </body>
