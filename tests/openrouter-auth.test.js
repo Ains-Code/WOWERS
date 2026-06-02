@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
-import { getOpenRouterKey, normalizeOpenRouterKey } from '../server.js';
+import { getOpenRouterErrorMessage, getOpenRouterKey, normalizeOpenRouterKey, readOpenRouterBody } from '../server.js';
 
 const originalOpenRouterKey = process.env.OPENROUTER_KEY;
 
@@ -49,4 +49,18 @@ test('getOpenRouterKey prefers the server environment key', () => {
   const req = requestWithHeaders({ Authorization: 'Bearer sk-or-v1-from-auth' });
 
   assert.equal(getOpenRouterKey(req), 'sk-or-v1-env');
+});
+
+
+test('getOpenRouterErrorMessage preserves plain text upstream errors', () => {
+  assert.equal(getOpenRouterErrorMessage({ rawText: 'upstream exploded' }), 'upstream exploded');
+  assert.equal(getOpenRouterErrorMessage({ error: { message: 'bad auth' } }), 'bad auth');
+});
+
+test('readOpenRouterBody handles json and non-json responses', async () => {
+  const jsonBody = await readOpenRouterBody(new Response(JSON.stringify({ error: 'bad request' })));
+  const textBody = await readOpenRouterBody(new Response('proxy unavailable'));
+
+  assert.deepEqual(jsonBody, { error: 'bad request' });
+  assert.deepEqual(textBody, { rawText: 'proxy unavailable' });
 });

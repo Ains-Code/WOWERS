@@ -28,9 +28,28 @@ function getOpenRouterKey(req) {
   return envKey || forwardedKey || authorizationKey;
 }
 
+function getOpenRouterErrorMessage(data, fallback = 'OpenRouter request failed.') {
+  if (typeof data?.error === 'string') return data.error;
+  if (typeof data?.error?.message === 'string') return data.error.message;
+  if (typeof data?.message === 'string') return data.message;
+  if (typeof data?.rawText === 'string' && data.rawText.trim()) return data.rawText.trim();
+  return fallback;
+}
+
+async function readOpenRouterBody(response) {
+  const rawText = await response.text().catch(() => '');
+  if (!rawText) return {};
+
+  try {
+    return JSON.parse(rawText);
+  } catch (_parseError) {
+    return { rawText };
+  }
+}
+
 function shouldRetryWithoutJsonMode(status, data) {
   if (status !== 400 && status !== 422) return false;
-  const message = String(data?.error?.message || data?.message || '').toLowerCase();
+  const message = getOpenRouterErrorMessage(data, '').toLowerCase();
   return message.includes('response_format') || message.includes('json') || message.includes('structured');
 }
 
@@ -88,7 +107,7 @@ app.post('/api/generate', async (req, res) => {
       body: JSON.stringify(requestPayload)
     });
 
-    let data = await response.json().catch(() => ({}));
+    let data = await readOpenRouterBody(response);
 
     if (!response.ok && shouldRetryWithoutJsonMode(response.status, data)) {
       const fallbackPayload = { ...requestPayload };
@@ -99,17 +118,20 @@ app.post('/api/generate', async (req, res) => {
         headers: openRouterHeaders,
         body: JSON.stringify(fallbackPayload)
       });
-      data = await response.json().catch(() => ({}));
+      data = await readOpenRouterBody(response);
     }
 
     if (timeout) clearTimeout(timeout);
 
     if (!response.ok) {
-      const message = data?.error?.message || data?.message || 'OpenRouter request failed.';
-      return res.status(response.status).json({ error: message });
+      return res.status(response.status).json({ error: getOpenRouterErrorMessage(data) });
     }
 
-    const textOutput = data?.choices?.[0]?.message?.content;
+    const rawOutput = data?.choices?.[0]?.message?.content;
+    const textOutput = Array.isArray(rawOutput)
+      ? rawOutput.map(item => (typeof item === 'string' ? item : item?.text || '')).join('')
+      : rawOutput;
+
     if (typeof textOutput !== 'string' || !textOutput.trim()) {
       return res.status(502).json({ error: 'OpenRouter returned an empty response.' });
     }
@@ -129,4 +151,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => console.log(`WOWERS server running at http://localhost:${PORT}`));
 }
 
-export { app, getOpenRouterKey, normalizeOpenRouterKey };
+export { app, getOpenRouterErrorMessage, getOpenRouterKey, normalizeOpenRouterKey, readOpenRouterBody };

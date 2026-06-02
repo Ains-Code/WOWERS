@@ -240,25 +240,30 @@ async function generateAiCode(lang) {
   `;
 
   try {
-    const apiServerResponse = await fetch('/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? {
-          Authorization: `Bearer ${apiKey}`,
-          'x-openrouter-key': apiKey
-        } : {})
-      },
-      body: JSON.stringify({
-        systemPrompt: structuralSystemBlueprintPrompt,
-        userMessage: `Generate a polished ${lang.toUpperCase()} focused frontend component from this request: ${rawPrompt}`
-      })
-    });
+    let apiServerResponse;
+    try {
+      apiServerResponse = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? {
+            Authorization: `Bearer ${apiKey}`,
+            'x-openrouter-key': apiKey
+          } : {})
+        },
+        body: JSON.stringify({
+          systemPrompt: structuralSystemBlueprintPrompt,
+          userMessage: `Generate a polished ${lang.toUpperCase()} focused frontend component from this request: ${rawPrompt}`
+        })
+      });
+    } catch (_networkError) {
+      throw new Error('Cannot reach the WOWERS API server. Run npm start and open http://localhost:3000 instead of opening index.html directly.');
+    }
 
-    const operationalDataResult = await apiServerResponse.json().catch(() => ({}));
+    const operationalDataResult = await readApiResponse(apiServerResponse);
 
     if(!apiServerResponse.ok) {
-      throw new Error(operationalDataResult.error || 'API call transmission processing error.');
+      throw new Error(getApiErrorMessage(apiServerResponse, operationalDataResult));
     }
 
     const cleanContentString = extractTextPayload(operationalDataResult).trim();
@@ -335,6 +340,31 @@ function stringifyCode(value) {
   if(Array.isArray(value)) return value.join('\n');
   if(value && typeof value === 'object') return JSON.stringify(value, null, 2);
   return '';
+}
+
+async function readApiResponse(response) {
+  const rawText = await response.text().catch(() => '');
+  if(!rawText) return {};
+
+  try {
+    return JSON.parse(rawText);
+  } catch (_parseError) {
+    return { error: rawText, rawText };
+  }
+}
+
+function getApiErrorMessage(response, apiResponse) {
+  const rawError = stringifyCode(apiResponse?.error || apiResponse?.message || apiResponse?.rawText).trim();
+  if(response.status === 404) {
+    return 'WOWERS API route /api/generate was not found. Run npm start and open http://localhost:3000 so the backend proxy is available.';
+  }
+
+  if(rawError) {
+    const compactError = rawError.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return compactError || `API request failed with HTTP ${response.status}.`;
+  }
+
+  return `API request failed with HTTP ${response.status}. Check the server console for details.`;
 }
 
 function extractTextPayload(apiResponse) {
