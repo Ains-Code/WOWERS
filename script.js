@@ -14,6 +14,9 @@ const appState = {
   }
 };
 
+const OPENROUTER_CHAT_COMPLETIONS_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_OPENROUTER_MODEL = 'openrouter/auto';
+
 const starterTemplates = [
   {
     lang: 'css',
@@ -240,32 +243,11 @@ async function generateAiCode(lang) {
   `;
 
   try {
-    let apiServerResponse;
-    try {
-      apiServerResponse = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey ? {
-            Authorization: `Bearer ${apiKey}`,
-            'x-openrouter-key': apiKey
-          } : {})
-        },
-        body: JSON.stringify({
-          systemPrompt: structuralSystemBlueprintPrompt,
-          userMessage: `Generate a polished ${lang.toUpperCase()} focused frontend component from this request: ${rawPrompt}`
-        })
-      });
-    } catch (_networkError) {
-      throw new Error('Cannot reach the WOWERS API server. Run npm start and open http://localhost:3000 instead of opening index.html directly.');
-    }
-
-    const operationalDataResult = await readApiResponse(apiServerResponse);
-
-    if(!apiServerResponse.ok) {
-      throw new Error(getApiErrorMessage(apiServerResponse, operationalDataResult));
-    }
-
+    const generationPayload = {
+      systemPrompt: structuralSystemBlueprintPrompt,
+      userMessage: `Generate a polished ${lang.toUpperCase()} focused frontend component from this request: ${rawPrompt}`
+    };
+    const operationalDataResult = await requestAiGeneration(generationPayload, apiKey);
     const cleanContentString = extractTextPayload(operationalDataResult).trim();
     const structuralCodeMatrix = normalizeGeneratedCode(parseGeneratedJson(cleanContentString), lang);
     applyGeneratedCode(structuralCodeMatrix, lang);
@@ -342,6 +324,109 @@ function stringifyCode(value) {
   return '';
 }
 
+
+async function requestAiGeneration(payload, apiKey) {
+  let apiServerResponse;
+
+  try {
+    apiServerResponse = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? {
+          Authorization: `Bearer ${apiKey}`,
+          'x-openrouter-key': apiKey
+        } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (_networkError) {
+    return requestDirectOpenRouter(payload, apiKey, 'Cannot reach the WOWERS API server.');
+  }
+
+  const apiResponseBody = await readApiResponse(apiServerResponse);
+  if(apiServerResponse.ok) return apiResponseBody;
+
+  if(shouldTryDirectOpenRouter(apiServerResponse.status)) {
+    return requestDirectOpenRouter(payload, apiKey, getApiErrorMessage(apiServerResponse, apiResponseBody));
+  }
+
+  throw new Error(getApiErrorMessage(apiServerResponse, apiResponseBody));
+}
+
+function shouldTryDirectOpenRouter(status) {
+  return [404, 405, 501, 502, 503, 504].includes(status);
+}
+
+async function requestDirectOpenRouter(payload, apiKey, proxyFailureMessage) {
+  if(!apiKey) {
+    throw new Error(`${proxyFailureMessage} Run npm start and open http://localhost:3000, or paste an OpenRouter key so the app can retry directly.`);
+  }
+
+  showGlobalToast('Proxy unavailable; retrying OpenRouter directly...');
+  const directPayload = {
+    model: DEFAULT_OPENROUTER_MODEL,
+    max_tokens: 1500,
+    messages: [
+      { role: 'system', content: payload.systemPrompt },
+      { role: 'user', content: payload.userMessage }
+    ],
+    response_format: { type: 'json_object' }
+  };
+
+  let directResponse = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
+    method: 'POST',
+    headers: getDirectOpenRouterHeaders(apiKey),
+    body: JSON.stringify(directPayload)
+  });
+  let directBody = await readApiResponse(directResponse);
+
+  if(!directResponse.ok && shouldRetryDirectWithoutJsonMode(directResponse.status, directBody)) {
+    const fallbackPayload = { ...directPayload };
+    delete fallbackPayload.response_format;
+    directResponse = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
+      method: 'POST',
+      headers: getDirectOpenRouterHeaders(apiKey),
+      body: JSON.stringify(fallbackPayload)
+    });
+    directBody = await readApiResponse(directResponse);
+  }
+
+  if(!directResponse.ok) {
+    throw new Error(getApiErrorMessage(directResponse, directBody));
+  }
+
+  return normalizeOpenRouterChatResponse(directBody);
+}
+
+function getDirectOpenRouterHeaders(apiKey) {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': window.location.href,
+    'X-Title': 'WOWERS Web Helper Studio'
+  };
+}
+
+function shouldRetryDirectWithoutJsonMode(status, responseBody) {
+  if(status !== 400 && status !== 422) return false;
+  const message = stringifyCode(responseBody?.error?.message || responseBody?.error || responseBody?.message).toLowerCase();
+  return message.includes('response_format') || message.includes('json') || message.includes('structured');
+}
+
+function normalizeOpenRouterChatResponse(responseBody) {
+  const rawOutput = responseBody?.choices?.[0]?.message?.content;
+  const textOutput = Array.isArray(rawOutput)
+    ? rawOutput.map(item => (typeof item === 'string' ? item : item?.text || '')).join('')
+    : rawOutput;
+
+  if(typeof textOutput !== 'string' || !textOutput.trim()) {
+    throw new Error('OpenRouter returned an empty response.');
+  }
+
+  return { content: [{ type: 'text', text: textOutput }] };
+}
+
 async function readApiResponse(response) {
   const rawText = await response.text().catch(() => '');
   if(!rawText) return {};
@@ -354,9 +439,13 @@ async function readApiResponse(response) {
 }
 
 function getApiErrorMessage(response, apiResponse) {
-  const rawError = stringifyCode(apiResponse?.error || apiResponse?.message || apiResponse?.rawText).trim();
+  const rawError = stringifyCode(apiResponse?.error?.message || apiResponse?.error || apiResponse?.message || apiResponse?.rawText).trim();
   if(response.status === 404) {
     return 'WOWERS API route /api/generate was not found. Run npm start and open http://localhost:3000 so the backend proxy is available.';
+  }
+
+  if(response.status === 405) {
+    return rawError || 'The current host rejected POST requests to /api/generate (HTTP 405). Run npm start locally or deploy the Express API with the frontend.';
   }
 
   if(rawError) {

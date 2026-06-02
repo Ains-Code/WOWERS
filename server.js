@@ -61,6 +61,11 @@ app.get('/api/config', (_req, res) => {
   res.json({ hasServerKey: Boolean(process.env.OPENROUTER_KEY?.trim()) });
 });
 
+function sendMethodNotAllowed(req, res) {
+  res.set('Allow', 'POST, OPTIONS');
+  res.status(405).json({ error: `${req.method} is not allowed for /api/generate. Use POST.` });
+}
+
 app.post('/api/generate', async (req, res) => {
   let timeout;
 
@@ -144,6 +149,8 @@ app.post('/api/generate', async (req, res) => {
     res.status(isAbort ? 504 : 500).json({ error: isAbort ? 'OpenRouter request timed out.' : error.message || 'Failed to communicate with AI.' });
   }
 });
+
+app.all('/api/generate', sendMethodNotAllowed);
 
 const PORT = process.env.PORT || 3000;
 

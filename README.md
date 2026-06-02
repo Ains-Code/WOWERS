@@ -23,7 +23,7 @@ If `OPENROUTER_KEY` is configured on the server, the app unlocks automatically. 
 npm start
 ```
 
-Open <http://localhost:3000>. Pick any quick template to load working code instantly, or enter your own prompt and click **Generate with AI** to customize it with OpenRouter.
+Open <http://localhost:3000>. Pick any quick template to load working code instantly, or enter your own prompt and click **Generate with AI** to customize it with OpenRouter. If a static host rejects `/api/generate` with HTTP 404/405/5xx and you pasted a browser key, the app retries OpenRouter directly instead of showing a generic transmission error.
 
 ## Checks
 

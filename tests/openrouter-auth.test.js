@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import { afterEach, test } from 'node:test';
-import { getOpenRouterErrorMessage, getOpenRouterKey, normalizeOpenRouterKey, readOpenRouterBody } from '../server.js';
+import { app, getOpenRouterErrorMessage, getOpenRouterKey, normalizeOpenRouterKey, readOpenRouterBody } from '../server.js';
 
 const originalOpenRouterKey = process.env.OPENROUTER_KEY;
 
@@ -63,4 +64,21 @@ test('readOpenRouterBody handles json and non-json responses', async () => {
 
   assert.deepEqual(jsonBody, { error: 'bad request' });
   assert.deepEqual(textBody, { rawText: 'proxy unavailable' });
+});
+
+
+test('GET /api/generate returns a JSON 405 instead of an empty response', async () => {
+  const server = createServer(app);
+  await new Promise(resolve => server.listen(0, resolve));
+  try {
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/api/generate`);
+    const body = await response.json();
+
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get('allow'), 'POST, OPTIONS');
+    assert.match(body.error, /GET is not allowed/);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
 });
