@@ -3,296 +3,277 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSS & JS Maker</title>
+  <title>Web Helper - Workspace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-mode" id="app-body">
 
-  <header>
-    <a href="#" class="logo">
-      <div class="logo-icon">✦</div>
-      CSS<span>/</span>JS Maker
-    </a>
-    <div class="header-badge">AI-Powered</div>
-  </header>
-
-  <div class="tab-nav">
-    <button class="tab-btn css-tab active" onclick="switchTab('css')"><div class="tab-dot"></div>CSS Maker</button>
-    <button class="tab-btn js-tab"         onclick="switchTab('js')"><div class="tab-dot"></div>JS Maker</button>
-    <button class="tab-btn html-tab"       onclick="switchTab('html')"><div class="tab-dot"></div>HTML Maker</button>
+  <div class="hero-section" id="hero-banner">
+    <div class="hero-left">
+      <h1>WEB HELPER</h1>
+      <p class="intro-subtitle">
+        An AI-powered development environment to seamlessly generate, style, and preview web layout templates.
+      </p>
+      <div class="api-key-container">
+        <label for="apikey-input" class="input-label">Connect OpenRouter Engine</label>
+        <input id="apikey-input" type="password" placeholder="Enter your API token keys...">
+        <button onclick="saveApiKey()">ENTER KEY</button>
+      </div>
+    </div>
+    <div class="hero-right">
+      <h2>Design Workspace</h2>
+    </div>
   </div>
 
-  <main>
-    <div class="panel active" id="css-panel">
-      <div class="split">
-        <div class="input-side">
-          <div class="side-header"><div class="dot"></div>Describe your styles</div>
-          <div class="quick-templates">
-            <div class="templates-label">Quick templates</div>
-            <div class="templates-grid">
-              <button class="tpl-btn" onclick="setTpl('css','A glowing neon button with hover animation and purple glow effect')">✦ Neon button</button>
-              <button class="tpl-btn" onclick="setTpl('css','A glassmorphism card with frosted blur effect and subtle border')">❋ Glass card</button>
-              <button class="tpl-btn" onclick="setTpl('css','An animated gradient background that slowly shifts colors')">◈ Gradient BG</button>
-              <button class="tpl-btn" onclick="setTpl('css','A responsive CSS grid layout for a photo gallery with hover zoom')">⊞ Photo grid</button>
-              <button class="tpl-btn" onclick="setTpl('css','A loading spinner animation with multiple spinning rings')">↻ Loader</button>
-              <button class="tpl-btn" onclick="setTpl('css','A smooth CSS dropdown navigation menu with animation')">≡ Nav menu</button>
-              <button class="tpl-btn" onclick="setTpl('css','A styled form with floating labels and focus animations')">☐ Form style</button>
-              <button class="tpl-btn" onclick="setTpl('css','A card flip animation showing front and back on hover')">⇄ Flip card</button>
-            </div>
-          </div>
-          <div class="describe-area">
-            <div class="describe-label"><i class="fa-solid fa-pen-to-square"></i>Describe what you want to style</div>
-            <textarea class="describe-input" id="css-input" placeholder="Example: A modern button with a gradient background, rounded corners, box shadow, and smooth scale animation on hover. Use blue and purple."></textarea>
-            <div class="options-row">
-              <select class="option-select" id="css-style-type">
-                <option value="vanilla">Vanilla CSS</option>
-                <option value="variables">CSS Variables</option>
-                <option value="tailwind">Tailwind classes</option>
-                <option value="scss">SCSS/Sass</option>
-              </select>
-              <select class="option-select" id="css-detail-level">
-                <option value="clean">Clean &amp; minimal</option>
-                <option value="commented">With comments</option>
-                <option value="full">Full breakdown</option>
-              </select>
-            </div>
-            <button class="generate-btn" id="css-gen-btn" onclick="generate('css')">
-              <div class="spinner"></div>
-              <i class="fa-solid fa-wand-magic-sparkles btn-icon"></i>
-              Generate CSS
-            </button>
-          </div>
-          <div class="error-box" id="css-error"><i class="fa-solid fa-circle-exclamation"></i><span id="css-error-msg"></span></div>
-        </div>
-        <div class="output-side">
-          <div class="output-header">
-            <div class="output-tabs">
-              <button class="out-tab active" onclick="switchOut('css','code',this)">Code</button>
-              <button class="out-tab"        onclick="switchOut('css','preview',this)">Preview</button>
-              <button class="out-tab"        onclick="switchOut('css','explain',this)">Explain</button>
-            </div>
-            <div class="output-actions">
-              <button class="action-btn" onclick="copyOut('css')"><i class="fa-regular fa-copy"></i> Copy</button>
-              <button class="action-btn" onclick="dlOut('css')"><i class="fa-solid fa-download"></i> Download</button>
-            </div>
-          </div>
-          <div class="output-pane active" id="css-code-pane">
-            <div class="code-wrap">
-              <div class="empty-state" id="css-empty"><div class="empty-icon">✦</div><h3>Your CSS will appear here</h3><p>Describe what you want to style on the left, then click Generate.</p></div>
-              <pre id="css-code-out" style="display:none"></pre>
-            </div>
-          </div>
-          <div class="output-pane" id="css-preview-pane">
-            <div class="preview-wrap"><div class="preview-frame-wrap">
-              <div class="preview-html-area">
-                <div class="preview-html-label"><i class="fa-brands fa-html5"></i>HTML to preview</div>
-                <textarea class="preview-html-input" id="css-html-input" placeholder="<button class='my-btn'>Click me</button>" oninput="refreshPreview('css')"></textarea>
-              </div>
-              <div class="preview-render">
-                <div class="preview-render-label">
-                  <span><i class="fa-solid fa-eye" style="margin-right:5px"></i>Live preview</span>
-                  <button class="refresh-btn" onclick="refreshPreview('css')"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-                </div>
-                <iframe id="css-iframe" style="height:300px"></iframe>
-              </div>
-            </div></div>
-          </div>
-          <div class="output-pane" id="css-explain-pane">
-            <div class="explain-wrap"><div class="explain-content" id="css-explain-content">
-              <div class="empty-state" style="align-items:flex-start;padding:0;"><h3 style="color:var(--text3);font-weight:400;font-size:14px;">Generate some CSS first, and the explanation will appear here.</h3></div>
-            </div></div>
-          </div>
+  <div class="workspace-wrapper" id="main-workspace">
+
+    <header class="top-navbar">
+      <div class="navbar-logo">
+        <div class="logo-icon">
+          <span>S</span><span class="logo-slash">/</span><span>f</span>
         </div>
       </div>
-    </div>
+      <nav class="navbar-tabs">
+        <button class="nav-tab css-nav active" onclick="switchMainTab('css')">
+          <span class="nav-dot css-dot"></span>CSS 
+        </button>
+        <button class="nav-tab js-nav" onclick="switchMainTab('js')">
+          <span class="nav-dot js-dot"></span>JAVASCRIPT 
+        </button>
+        <button class="nav-tab html-nav" onclick="switchMainTab('html')">
+          <span class="nav-dot html-dot"></span>HTML
+        </button>
+      </nav>
+      <div class="navbar-actions">
+        <button class="nav-action-btn" onclick="copyWorkspaceOutput(getActiveTab())"><i class="fa-regular fa-copy"></i> Copy</button>
+        <button class="nav-action-btn download" onclick="downloadWorkspaceOutput(getActiveTab(), getActiveTab())"><i class="fa-solid fa-download"></i> Download</button>
+      </div>
+    </header>
 
-    <div class="panel" id="js-panel">
-      <div class="split">
-        <div class="input-side">
-          <div class="side-header"><div class="dot"></div>Describe your function</div>
-          <div class="quick-templates">
-            <div class="templates-label">Quick templates</div>
-            <div class="templates-grid">
-              <button class="tpl-btn" onclick="setTpl('js','A smooth scroll-to-top button that appears when the user scrolls down 300px')">↑ Scroll to top</button>
-              <button class="tpl-btn" onclick="setTpl('js','A dark mode toggle that saves preference to localStorage')">◑ Dark mode toggle</button>
-              <button class="tpl-btn" onclick="setTpl('js','A countdown timer that counts down to a given date and shows days, hours, minutes, seconds')">⏱ Countdown</button>
-              <button class="tpl-btn" onclick="setTpl('js','A form validator that checks email, required fields, and minimum password length')">✓ Form validator</button>
-              <button class="tpl-btn" onclick="setTpl('js','An image lazy loader using IntersectionObserver')">◻ Lazy loader</button>
-              <button class="tpl-btn" onclick="setTpl('js','A debounce function and a search input that uses it to filter a list')">⌕ Debounce search</button>
-              <button class="tpl-btn" onclick="setTpl('js','A drag and drop list where items can be reordered')">⇅ Drag &amp; drop</button>
-              <button class="tpl-btn" onclick="setTpl('js','A modal dialog with open/close animations and keyboard trap')">☐ Modal dialog</button>
-            </div>
-          </div>
-          <div class="describe-area">
-            <div class="describe-label"><i class="fa-solid fa-pen-to-square"></i>Describe what you want to build</div>
-            <textarea class="describe-input" id="js-input" placeholder="Example: A function that fetches data from an API, shows a loading spinner, handles errors gracefully, and updates the DOM with the results."></textarea>
-            <div class="options-row">
-              <select class="option-select" id="js-style-type">
-                <option value="vanilla">Vanilla JS</option>
-                <option value="es6">ES6+ Modern</option>
-                <option value="jquery">jQuery</option>
-                <option value="async">Async/Await</option>
-              </select>
-              <select class="option-select" id="js-detail-level">
-                <option value="clean">Clean &amp; minimal</option>
-                <option value="commented">With comments</option>
-                <option value="full">Full breakdown</option>
-              </select>
-            </div>
-            <button class="generate-btn" id="js-gen-btn" onclick="generate('js')">
-              <div class="spinner"></div>
-              <i class="fa-solid fa-bolt btn-icon"></i>
-              Generate JS
-            </button>
-          </div>
-          <div class="error-box" id="js-error"><i class="fa-solid fa-circle-exclamation"></i><span id="js-error-msg"></span></div>
-        </div>
-        <div class="output-side">
-          <div class="output-header">
-            <div class="output-tabs">
-              <button class="out-tab active" onclick="switchOut('js','code',this)">Code</button>
-              <button class="out-tab"        onclick="switchOut('js','preview',this)">Preview</button>
-              <button class="out-tab"        onclick="switchOut('js','explain',this)">Explain</button>
-            </div>
-            <div class="output-actions">
-              <button class="action-btn" onclick="copyOut('js')"><i class="fa-regular fa-copy"></i> Copy</button>
-              <button class="action-btn" onclick="dlOut('js')"><i class="fa-solid fa-download"></i> Download</button>
-            </div>
-          </div>
-          <div class="output-pane active" id="js-code-pane">
-            <div class="code-wrap">
-              <div class="empty-state" id="js-empty"><div class="empty-icon">⚡</div><h3>Your JavaScript will appear here</h3><p>Describe the function or behavior you need, then click Generate.</p></div>
-              <pre id="js-code-out" style="display:none"></pre>
-            </div>
-          </div>
-          <div class="output-pane" id="js-preview-pane">
-            <div class="preview-wrap"><div class="preview-frame-wrap">
-              <div class="preview-html-area">
-                <div class="preview-html-label"><i class="fa-brands fa-html5"></i>HTML to preview</div>
-                <textarea class="preview-html-input" id="js-html-input" placeholder="<button id='myBtn'>Click me</button>" oninput="refreshPreview('js')"></textarea>
+    <main class="panels-area">
+
+      <div class="panel active" id="css-panel">
+        <div class="workspace-split">
+          <aside class="left-sidebar">
+            <div class="sidebar-heading"><span class="heading-dot css-dot"></span>DESCRIBE YOUR STYLES</div>
+            <div class="quick-templates-section">
+              <div class="section-label">QUICK TEMPLATES</div>
+              <div class="templates-grid">
+                <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Dark card component with neon glow shadow')">Dark card</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Gradient hero banner canvas theme layout')">Hero banner</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Animated bounce button hover effect')">Button hover</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Glassmorphism dark frosted UI panel')">Glassmorphism</button>
               </div>
-              <div class="preview-render">
-                <div class="preview-render-label">
-                  <span><i class="fa-solid fa-eye" style="margin-right:5px"></i>Live preview</span>
-                  <button class="refresh-btn" onclick="refreshPreview('js')"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+            </div>
+            <div class="describe-section">
+              <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe layout requirements</div>
+              <textarea class="describe-input" id="css-prompt-input" placeholder="Type structural layout directions..."></textarea>
+              <div class="options-row">
+                <select class="option-select" id="css-format-select" onchange="triggerLiveAiGeneration()">
+                  <option value="inline">Inline CSS</option>
+                  <option value="separate">Separate &lt;style&gt;</option>
+                </select>
+                <select class="option-select" id="css-depth-select" onchange="triggerLiveAiGeneration()">
+                  <option value="full">Full breakdown</option>
+                  <option value="clean">Clean output</option>
+                </select>
+              </div>
+              <button class="generate-btn" onclick="generateAiCode('css')">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+              </button>
+            </div>
+          </aside>
+          <div class="center-output">
+            <div class="output-topbar">
+              <div class="output-tab-group">
+                <button class="out-tab" id="css-btn-code" onclick="switchOutputTab('css', 'code')">Code</button>
+                <button class="out-tab active" id="css-btn-preview" onclick="switchOutputTab('css', 'preview')">Preview</button>
+              </div>
+            </div>
+            <div class="output-pane" id="css-pane-code">
+              <div class="code-wrap">
+                <div class="empty-state" id="css-empty-view">
+                  <div class="empty-icon"><i class="fa-solid fa-code"></i></div>
+                  <h3>AI BLUEPRINT DISPLAY ARCHIVE</h3>
                 </div>
-                <iframe id="js-iframe" style="height:300px"></iframe>
+                <pre id="css-code-target" style="display:none;"></pre>
               </div>
-            </div></div>
+            </div>
+            <div class="output-pane active" id="css-pane-preview">
+              <div class="preview-wrap">
+                <div class="preview-panel-box">
+                  <div class="pane-bar"><span>CSS CODE EDITOR</span></div>
+                  <textarea class="preview-html-input" id="css-preview-editor" oninput="syncRuntimeSandbox('css')"></textarea>
+                </div>
+                <div class="preview-panel-box">
+                  <div class="pane-bar provider-bar"><span>LIVE ENVIRONMENT PREVIEW</span></div>
+                  <iframe id="css-sandbox-frame"></iframe>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="output-pane" id="js-explain-pane">
-            <div class="explain-wrap"><div class="explain-content" id="js-explain-content">
-              <div class="empty-state" style="align-items:flex-start;padding:0;"><h3 style="color:var(--text3);font-weight:400;font-size:14px;">Generate some JS first, and the explanation will appear here.</h3></div>
-            </div></div>
-          </div>
+          <aside class="right-explanation">
+            <div class="explanation-title">EXPLANATION</div>
+            <div class="explain-content" id="css-explanation-box">
+              <p class="explain-hint">Every generate have explanation</p>
+            </div>
+          </aside>
         </div>
       </div>
-    </div>
 
-    <div class="panel" id="html-panel">
-      <div class="split">
-        <div class="input-side">
-          <div class="side-header"><div class="dot"></div>Describe your page / component</div>
-          <div class="quick-templates">
-            <div class="templates-label">Quick templates</div>
-            <div class="templates-grid">
-              <button class="tpl-btn" onclick="setTpl('html','A hero section with a bold headline, subtitle, two CTA buttons, and a background gradient')">◈ Hero section</button>
-              <button class="tpl-btn" onclick="setTpl('html','A pricing table with 3 tiers: Free, Pro, and Enterprise with feature lists and CTA buttons')">$ Pricing table</button>
-              <button class="tpl-btn" onclick="setTpl('html','A contact form with name, email, subject, message fields and a submit button')">✉ Contact form</button>
-              <button class="tpl-btn" onclick="setTpl('html','A responsive navigation bar with a logo, links, and a mobile hamburger menu')">≡ Navbar</button>
-              <button class="tpl-btn" onclick="setTpl('html','A card grid showing team members with avatar, name, role, and social links')">☐ Team cards</button>
-              <button class="tpl-btn" onclick="setTpl('html','A FAQ accordion section with expandable questions and smooth animation')">? FAQ section</button>
-              <button class="tpl-btn" onclick="setTpl('html','A testimonials slider with quotes, author name, and navigation dots')">❝ Testimonials</button>
-              <button class="tpl-btn" onclick="setTpl('html','A full landing page for a SaaS product with navbar, hero, features, and footer')">⊞ Full landing page</button>
-            </div>
-          </div>
-          <div class="describe-area">
-            <div class="describe-label"><i class="fa-solid fa-pen-to-square"></i>Describe the HTML component you need</div>
-            <textarea class="describe-input" id="html-input" placeholder="Example: A product card with an image placeholder, product name, star rating, price, and an add-to-cart button. Modern and clean with built-in CSS."></textarea>
-            <div class="options-row">
-              <select class="option-select" id="html-style-mode">
-                <option value="inline">Inline CSS (self-contained)</option>
-                <option value="separate">Separate &lt;style&gt; tag</option>
-                <option value="tailwind">Tailwind classes</option>
-                <option value="bare">Bare HTML only</option>
-              </select>
-              <select class="option-select" id="html-detail-level">
-                <option value="clean">Clean output</option>
-                <option value="commented">With comments</option>
-                <option value="full">Full breakdown</option>
-              </select>
-            </div>
-            <button class="generate-btn" id="html-gen-btn" onclick="generate('html')">
-              <div class="spinner"></div>
-              <i class="fa-brands fa-html5 btn-icon"></i>
-              Generate HTML
-            </button>
-          </div>
-          <div class="error-box" id="html-error"><i class="fa-solid fa-circle-exclamation"></i><span id="html-error-msg"></span></div>
-        </div>
-        <div class="output-side">
-          <div class="output-header">
-            <div class="output-tabs">
-              <button class="out-tab active" onclick="switchOut('html','code',this)">Code</button>
-              <button class="out-tab"        onclick="switchOut('html','preview',this)">Live Preview</button>
-              <button class="out-tab"        onclick="switchOut('html','explain',this)">Explain</button>
-            </div>
-            <div class="output-actions">
-              <button class="action-btn" onclick="copyOut('html')"><i class="fa-regular fa-copy"></i> Copy</button>
-              <button class="action-btn" onclick="dlOut('html')"><i class="fa-solid fa-download"></i> Download</button>
-            </div>
-          </div>
-
-          <div class="output-pane active" id="html-code-pane">
-            <div class="code-wrap">
-              <div class="empty-state" id="html-empty"><div class="empty-icon">🌐</div><h3>Your HTML will appear here</h3><p>Describe the component or page on the left, then click Generate.</p></div>
-              <pre id="html-code-out" style="display:none"></pre>
-            </div>
-          </div>
-
-          <div class="output-pane" id="html-preview-pane">
-            <div class="html-live-pane">
-              <div class="html-editor-col">
-                <div class="pane-bar">
-                  <div class="pane-bar-left"><i class="fa-solid fa-code" style="font-size:13px"></i> Edit HTML live</div>
-                </div>
-                <textarea id="html-live-editor" placeholder="Generated HTML will appear here for live editing..." oninput="liveRefresh()" onkeydown="handleTab(event)"></textarea>
-                <div class="editor-footer">
-                  <button class="action-btn" style="font-size:11px;padding:4px 10px;" onclick="liveRefresh()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-                  <button class="action-btn" style="font-size:11px;padding:4px 10px;" onclick="resetLiveEditor()"><i class="fa-solid fa-arrow-rotate-left"></i> Reset</button>
-                  <span style="font-size:11px;color:var(--text3);margin-left:auto;">Tab = indent</span>
-                </div>
+      <div class="panel" id="js-panel">
+        <div class="workspace-split">
+          <aside class="left-sidebar">
+            <div class="sidebar-heading"><span class="heading-dot js-dot"></span>DESCRIBE YOUR RUNTIME</div>
+            <div class="quick-templates-section">
+              <div class="section-label">QUICK TEMPLATES</div>
+              <div class="templates-grid">
+                <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Smooth scroll reveal behavior matrix')">Smooth scroll</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Toggle active light and dark body mode')">Dark mode</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Interactive modal display framework helper')">Modal trigger</button>
               </div>
-              <div class="html-render-col">
-                <div class="pane-bar">
-                  <div class="pane-bar-left"><i class="fa-solid fa-eye" style="font-size:13px"></i> Live render</div>
-                  <div style="display:flex;gap:4px;">
-                    <button class="action-btn" style="font-size:12px;padding:3px 8px;" onclick="setPreviewBg('#ffffff')" title="White">☀</button>
-                    <button class="action-btn" style="font-size:12px;padding:3px 8px;" onclick="setPreviewBg('#0d0f14')" title="Dark">☾</button>
-                    <button class="action-btn" style="font-size:12px;padding:3px 8px;" onclick="setPreviewBg('#f0f0f0')" title="Gray">▪</button>
-                  </div>
+            </div>
+            <div class="describe-section">
+              <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe runtime script logic</div>
+              <textarea class="describe-input" id="js-prompt-input" placeholder="Type functional script instructions..."></textarea>
+              <div class="options-row">
+                <select class="option-select" id="js-format-select" onchange="triggerLiveAiGeneration()">
+                  <option value="vanilla">Vanilla JS</option>
+                  <option value="es6">ES6 Modules</option>
+                </select>
+                <select class="option-select" id="js-depth-select" onchange="triggerLiveAiGeneration()">
+                  <option value="full">Full breakdown</option>
+                  <option value="clean">Clean output</option>
+                </select>
+              </div>
+              <button class="generate-btn" onclick="generateAiCode('js')">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+              </button>
+            </div>
+          </aside>
+          <div class="center-output">
+            <div class="output-topbar">
+              <div class="output-tab-group">
+                <button class="out-tab" id="js-btn-code" onclick="switchOutputTab('js', 'code')">Code</button>
+                <button class="out-tab active" id="js-btn-preview" onclick="switchOutputTab('js', 'preview')">Preview</button>
+              </div>
+            </div>
+            <div class="output-pane" id="js-pane-code">
+              <div class="code-wrap">
+                <div class="empty-state" id="js-empty-view">
+                  <div class="empty-icon"><i class="fa-brands fa-js"></i></div>
+                  <h3>AI JAVASCRIPT DISPLAY ARCHIVE</h3>
                 </div>
-                <iframe id="html-live-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+                <pre id="js-code-target" style="display:none;"></pre>
+              </div>
+            </div>
+            <div class="output-pane active" id="js-pane-preview">
+              <div class="preview-wrap">
+                <div class="preview-panel-box">
+                  <div class="pane-bar"><span>JAVASCRIPT EDITOR</span></div>
+                  <textarea class="preview-html-input" id="js-preview-editor" oninput="syncRuntimeSandbox('js')"></textarea>
+                </div>
+                <div class="preview-panel-box">
+                  <div class="pane-bar provider-bar"><span>LIVE ENVIRONMENT PREVIEW</span></div>
+                  <iframe id="js-sandbox-frame"></iframe>
+                </div>
               </div>
             </div>
           </div>
-
-          <div class="output-pane" id="html-explain-pane">
-            <div class="explain-wrap"><div class="explain-content" id="html-explain-content">
-              <div class="empty-state" style="align-items:flex-start;padding:0;"><h3 style="color:var(--text3);font-weight:400;font-size:14px;">Generate some HTML first, and the explanation will appear here.</h3></div>
-            </div></div>
-          </div>
+          <aside class="right-explanation">
+            <div class="explanation-title">EXPLANATION</div>
+            <div class="explain-content" id="js-explanation-box">
+              <p class="explain-hint">Every generate have explanation</p>
+            </div>
+          </aside>
         </div>
       </div>
-    </div>
-  </main>
 
-  <div class="toast" id="toast"><i class="fa-solid fa-check"></i><span id="toast-msg"></span></div>
+      <div class="panel" id="html-panel">
+        <div class="workspace-split">
+          <aside class="left-sidebar">
+            <div class="sidebar-heading"><span class="heading-dot html-dot"></span>DESCRIBE YOUR DOM</div>
+            <div class="quick-templates-section">
+              <div class="section-label">QUICK TEMPLATES</div>
+              <div class="templates-grid">
+                <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Hero section canvas with bold layout headings')">Hero Section</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Clean contact input form dashboard box')">Contact Form</button>
+                <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Responsive 3 column grid price comparison metrics')">Pricing Grid</button>
+              </div>
+            </div>
+            <div class="describe-section">
+              <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe custom element goals</div>
+              <textarea class="describe-input" id="html-prompt-input" placeholder="Type document node directives..."></textarea>
+              <div class="options-row">
+                <select class="option-select" id="html-format-select" onchange="triggerLiveAiGeneration()">
+                  <option value="inline">Inline CSS</option>
+                  <option value="separate">Separate &lt;style&gt;</option>
+                </select>
+                <select class="option-select" id="html-depth-select" onchange="triggerLiveAiGeneration()">
+                  <option value="full">Full breakdown</option>
+                  <option value="clean">Clean output</option>
+                </select>
+              </div>
+              <button class="generate-btn" onclick="generateAiCode('html')">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+              </button>
+            </div>
+          </aside>
+          <div class="center-output">
+            <div class="output-topbar">
+              <div class="output-tab-group">
+                <button class="out-tab" id="html-btn-code" onclick="switchOutputTab('html', 'code')">Code</button>
+                <button class="out-tab active" id="html-btn-preview" onclick="switchOutputTab('html', 'preview')">Preview</button>
+              </div>
+            </div>
+            <div class="output-pane" id="html-pane-code">
+              <div class="code-wrap">
+                <div class="empty-state" id="html-empty-view">
+                  <div class="empty-icon"><i class="fa-brands fa-html5"></i></div>
+                  <h3>AI HTML MARKUP DISPLAY ARCHIVE</h3>
+                </div>
+                <pre id="html-code-target" style="display:none;"></pre>
+              </div>
+            </div>
+            <div class="output-pane active" id="html-pane-preview">
+              <div class="preview-wrap">
+                <div class="preview-panel-box">
+                  <div class="pane-bar"><span>HTML MARKUP EDITOR</span></div>
+                  <textarea class="preview-html-input" id="html-preview-editor" oninput="syncRuntimeSandbox('html')"></textarea>
+                </div>
+                <div class="preview-panel-box">
+                  <div class="pane-bar provider-bar"><span>LIVE ENVIRONMENT PREVIEW</span></div>
+                  <iframe id="html-sandbox-frame"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+          <aside class="right-explanation">
+            <div class="explanation-title">EXPLANATION</div>
+            <div class="explain-content" id="html-explanation-box">
+              <p class="explain-hint">Every generate have explanation</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="toast" id="global-toast">
+    <i class="fa-solid fa-circle-check"></i><span id="toast-text">Action completed!</span>
+  </div>
 
   <script src="script.js"></script>
+  <script>
+    function getActiveTab() {
+      if (document.getElementById('css-panel').classList.contains('active')) return 'css';
+      if (document.getElementById('js-panel').classList.contains('active')) return 'js';
+      return 'html';
+    }
+  </script>
 </body>
 </html>
-
