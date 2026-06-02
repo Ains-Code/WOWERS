@@ -15,7 +15,7 @@ Add your OpenRouter API key to `.env`:
 OPENROUTER_KEY=sk-or-v1-your-key
 ```
 
-If `OPENROUTER_KEY` is configured on the server, the app unlocks automatically. You can also paste an OpenRouter key into the app's sign-in screen; the backend will use the server key first and fall back to the key supplied by the browser for that request.
+If `OPENROUTER_KEY` is configured on the server, the app unlocks automatically. You can also paste an OpenRouter key into the app's sign-in screen; the browser forwards it to the backend with an `Authorization: Bearer ...` header and the backend also accepts the legacy `x-openrouter-key` header. The server key always takes priority when present.
 
 ## Run
 

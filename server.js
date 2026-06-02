@@ -16,9 +16,16 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
 const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '1500', 10);
 
+function normalizeOpenRouterKey(value) {
+  return String(value || '').trim().replace(/^Bearer\s+/i, '');
+}
+
 function getOpenRouterKey(req) {
-  const headerKey = req.get('x-openrouter-key');
-  return (process.env.OPENROUTER_KEY || headerKey || '').trim();
+  const envKey = normalizeOpenRouterKey(process.env.OPENROUTER_KEY);
+  const forwardedKey = normalizeOpenRouterKey(req.get('x-openrouter-key'));
+  const authorizationKey = normalizeOpenRouterKey(req.get('authorization'));
+
+  return envKey || forwardedKey || authorizationKey;
 }
 
 function shouldRetryWithoutJsonMode(status, data) {
@@ -43,7 +50,7 @@ app.post('/api/generate', async (req, res) => {
     const openRouterKey = getOpenRouterKey(req);
 
     if (!openRouterKey) {
-      return res.status(401).json({ error: 'Missing OpenRouter key. Set OPENROUTER_KEY on the server or provide one in the app.' });
+      return res.status(401).json({ error: 'Missing authentication header. Set OPENROUTER_KEY on the server, or provide an OpenRouter key in the app so it can be forwarded as Authorization.' });
     }
 
     if (typeof systemPrompt !== 'string' || !systemPrompt.trim()) {
@@ -117,4 +124,9 @@ app.post('/api/generate', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`WOWERS server running at http://localhost:${PORT}`));
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, () => console.log(`WOWERS server running at http://localhost:${PORT}`));
+}
+
+export { app, getOpenRouterKey, normalizeOpenRouterKey };

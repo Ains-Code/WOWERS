@@ -118,6 +118,10 @@ function initializeEditors() {
   });
 }
 
+function normalizeOpenRouterKey(value) {
+  return String(value || '').trim().replace(/^Bearer\s+/i, '');
+}
+
 function unlockWorkspace() {
   if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
   syncAllSandboxes();
@@ -126,7 +130,7 @@ function unlockWorkspace() {
 function saveApiKey() {
   const keyInput = document.getElementById('apikey-input');
   if(!keyInput) return;
-  const keyVal = keyInput.value.trim();
+  const keyVal = normalizeOpenRouterKey(keyInput.value);
   if (keyVal) {
     sessionStorage.setItem('openrouter_key', keyVal);
     showGlobalToast('OpenRouter Engine connected successfully!');
@@ -199,7 +203,7 @@ function triggerLiveAiGeneration() {
 
 // REAL LIVE OPENROUTER INTERFACE ROUTINE
 async function generateAiCode(lang) {
-  const apiKey = sessionStorage.getItem('openrouter_key') || '';
+  const apiKey = normalizeOpenRouterKey(sessionStorage.getItem('openrouter_key'));
 
   const promptInput = document.getElementById(`${lang}-prompt-input`);
   if(!promptInput) return;
@@ -240,7 +244,10 @@ async function generateAiCode(lang) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey ? { 'x-openrouter-key': apiKey } : {})
+        ...(apiKey ? {
+          Authorization: `Bearer ${apiKey}`,
+          'x-openrouter-key': apiKey
+        } : {})
       },
       body: JSON.stringify({
         systemPrompt: structuralSystemBlueprintPrompt,
