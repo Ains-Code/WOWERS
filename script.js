@@ -1,212 +1,272 @@
-var state = { css: { code: '' }, js: { code: '' }, html: { code: '' } };
-var previewBg = '#ffffff';
+// System Local Cache State
+const appState = {
+  html: { activeCode: '', placeholderHtml: '<div style="padding: 24px; text-align:center; background:#10131f; border: 2px solid #7c4dff; color:white; border-radius:8px; font-family:sans-serif;">\n  <h2>AI Active Development Environment</h2>\n  <p>Input text instructions or pick quick templates to fire true real-time generation arrays.</p>\n</div>' },
+  css: { activeCode: '/* CSS Placeholder Initial Setup Sheets */\nbody { font-family: sans-serif; }', placeholderHtml: '/* initial default stylesheet setup values */' },
+  js: { activeCode: '// JavaScript active test canvas scripts\nconsole.log("Workspace engine active.");', placeholderHtml: '// listener template arrays' }
+};
 
-function switchTab(tab) {
-  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById(tab + '-panel').classList.add('active');
-  document.querySelector('.' + tab + '-tab').classList.add('active');
-}
+// Check for existing API key immediately upon loading page
+window.addEventListener('DOMContentLoaded', () => {
+  appState.html.activeCode = appState.html.placeholderHtml;
+  appState.css.activeCode = appState.css.placeholderHtml;
+  appState.js.activeCode = appState.js.placeholderHtml;
 
-function switchOut(lang, tab, btn) {
-  var panel = document.getElementById(lang + '-panel');
-  panel.querySelectorAll('.output-pane').forEach(function(p) { p.classList.remove('active'); });
-  panel.querySelectorAll('.out-tab').forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById(lang + '-' + tab + '-pane').classList.add('active');
-  btn.classList.add('active');
-  if (lang !== 'html' && tab === 'preview') refreshPreview(lang);
-}
+  if(document.getElementById('html-preview-editor')) document.getElementById('html-preview-editor').value = appState.html.placeholderHtml;
+  if(document.getElementById('css-preview-editor')) document.getElementById('css-preview-editor').value = appState.css.placeholderHtml;
+  if(document.getElementById('js-preview-editor')) document.getElementById('js-preview-editor').value = appState.js.placeholderHtml;
 
-function setTpl(lang, text) {
-  document.getElementById(lang + '-input').value = text;
-  document.getElementById(lang + '-input').focus();
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function highlightCSS(code) {
-  return code
-    .replace(/\/\*[\s\S]*?\*\//g, function(m) { return '<span class="tk-comment">' + m + '</span>'; })
-    .replace(/([.#\w][^{]*)\{/g, function(m, sel) { return '<span class="tk-selector">' + sel + '</span>{'; })
-    .replace(/([\w-]+)\s*:/g, function(m, p) { return '<span class="tk-property">' + p + '</span>:'; })
-    .replace(/:\s*([^;{}\n]+)/g, function(m, v) { return ': <span class="tk-value">' + v + '</span>'; })
-    .replace(/[{}]/g, function(m) { return '<span class="tk-brace">' + m + '</span>'; });
-}
-
-function highlightJS(code) {
-  var kw = /\b(const|let|var|function|return|if|else|for|while|class|new|this|typeof|import|export|default|async|await|try|catch|finally|switch|case|break|continue|null|undefined|true|false|of|in)\b/g;
-  return code
-    .replace(/\/\/.*/g, function(m) { return '<span class="tk-comment">' + m + '</span>'; })
-    .replace(/\/\*[\s\S]*?\*\//g, function(m) { return '<span class="tk-comment">' + m + '</span>'; })
-    .replace(/("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|`([^`\\]|\\.)*`)/g, function(m) { return '<span class="tk-string">' + m + '</span>'; })
-    .replace(kw, function(m) { return '<span class="tk-keyword">' + m + '</span>'; })
-    .replace(/\b(\d+\.?\d*)\b/g, function(m) { return '<span class="tk-number">' + m + '</span>'; })
-    .replace(/\b([A-Za-z_$][\w$]*)\s*(?=\()/g, function(m, n) { return '<span class="tk-function">' + n + '</span>('; });
-}
-
-function highlightHTML(code) {
-  var e = escapeHtml(code);
-  return e
-    .replace(/(&lt;!--[\s\S]*?--&gt;)/g, function(m) { return '<span class="tk-comment">' + m + '</span>'; })
-    .replace(/(&lt;\/?)([\w-]+)/g, function(m, s, t) { return '<span class="tk-brace">' + s + '</span><span class="tk-selector">' + t + '</span>'; })
-    .replace(/([\w-]+)=(&quot;)/g, function(m, a, q) { return '<span class="tk-property">' + a + '</span>=' + q; })
-    .replace(/(&gt;)/g, function(m) { return '<span class="tk-brace">' + m + '</span>'; });
-}
-
-function handleTab(e) {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    var ta = e.target, s = ta.selectionStart, end = ta.selectionEnd;
-    ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
-    ta.selectionStart = ta.selectionEnd = s + 2;
-    liveRefresh();
+  if (sessionStorage.getItem('openrouter_key')) {
+    if(document.getElementById('apikey-input')) document.getElementById('apikey-input').value = sessionStorage.getItem('openrouter_key');
+    if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
+    syncRuntimeSandbox('html');
+    syncRuntimeSandbox('css');
+    syncRuntimeSandbox('js');
   }
-}
+});
 
-function liveRefresh() {
-  var html = document.getElementById('html-live-editor').value;
-  var iframe = document.getElementById('html-live-iframe');
-  var doc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:' + previewBg + ';}</style></head><body>' + html + '</body></html>';
-  iframe.srcdoc = doc;
-}
-
-function resetLiveEditor() {
-  document.getElementById('html-live-editor').value = state.html.code;
-  liveRefresh();
-}
-
-function setPreviewBg(color) {
-  previewBg = color;
-  liveRefresh();
-}
-
-function refreshPreview(lang) {
-  var code = state[lang].code;
-  if (!code) return;
-  var htmlInput = document.getElementById(lang + '-html-input').value;
-  var iframe = document.getElementById(lang + '-iframe');
-  var doc;
-  if (lang === 'css') {
-    doc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:sans-serif;background:#fff;}' + code + '</style></head><body>' + (htmlInput || '<p style="color:#999;font-size:13px">Add HTML above to preview with your CSS</p>') + '</body></html>';
+function saveApiKey() {
+  const keyInput = document.getElementById('apikey-input');
+  if(!keyInput) return;
+  const keyVal = keyInput.value.trim();
+  if (keyVal) {
+    sessionStorage.setItem('openrouter_key', keyVal);
+    showGlobalToast("OpenRouter Engine connected successfully!");
+    if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
+    syncRuntimeSandbox('html');
+    syncRuntimeSandbox('css');
+    syncRuntimeSandbox('js');
   } else {
-    doc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:sans-serif;background:#fff;}</style></head><body>' + (htmlInput || '<p style="color:#999;font-size:13px">Add HTML above to preview with your JS</p>') + '<scr' + 'ipt>' + code + '</scr' + 'ipt></body></html>';
+    alert("Please insert a valid OpenRouter token key.");
   }
-  iframe.srcdoc = doc;
 }
 
-async function generate(lang) {
-  var input = document.getElementById(lang + '-input').value.trim();
-  if (!input) { showErr(lang, 'Please describe what you want first.'); return; }
-  hideErr(lang);
+function switchMainTab(targetLang) {
+  document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(pane => pane.classList.remove('active'));
+  
+  const targetTab = document.querySelector(`.${targetLang}-nav`);
+  const targetPanel = document.getElementById(`${targetLang}-panel`);
+  
+  if(targetTab) targetTab.classList.add('active');
+  if(targetPanel) targetPanel.classList.add('active');
+  syncRuntimeSandbox(targetLang);
+}
 
-  var btn = document.getElementById(lang + '-gen-btn');
-  btn.disabled = true;
-  btn.classList.add('loading');
+function switchOutputTab(lang, viewMode) {
+  const targetPanel = document.getElementById(`${lang}-panel`);
+  if(!targetPanel) return;
 
-  var styleType     = (document.getElementById(lang + '-style-type')  || {}).value || '';
-  var detailLevel   = (document.getElementById(lang + '-detail-level') || {}).value || 'clean';
-  var styleMode     = (document.getElementById('html-style-mode')     || {}).value || 'inline';
-  var htmlDetail    = (document.getElementById('html-detail-level')   || {}).value || 'clean';
+  const btnCode = targetPanel.querySelector('#' + lang + '-btn-code');
+  const btnPreview = targetPanel.querySelector('#' + lang + '-btn-preview');
+  const paneCode = targetPanel.querySelector('#' + lang + '-pane-code');
+  const panePreview = targetPanel.querySelector('#' + lang + '-pane-preview');
 
-  var sys = '';
-  if (lang === 'css') {
-    var ct = styleType === 'variables' ? 'CSS with custom properties' : styleType === 'tailwind' ? 'Tailwind CSS class names with example HTML' : styleType === 'scss' ? 'SCSS/Sass' : 'vanilla CSS';
-    var cc = detailLevel === 'commented' ? 'Add comments explaining each section.' : detailLevel === 'full' ? 'Add comments and append EXPLAIN_START then a plain-English explanation then EXPLAIN_END at the very end.' : 'No comments.';
-    sys = 'You are an expert CSS generator. Output only ' + ct + '. ' + cc + ' No markdown fences, no preamble.';
-  } else if (lang === 'js') {
-    var jt = styleType === 'jquery' ? 'jQuery' : styleType === 'async' ? 'async/await JavaScript' : styleType === 'es6' ? 'ES6+ JavaScript' : 'vanilla JavaScript';
-    var jc = detailLevel === 'commented' ? 'Add comments explaining each section.' : detailLevel === 'full' ? 'Add comments and append EXPLAIN_START then a plain-English explanation then EXPLAIN_END at the very end.' : 'No comments.';
-    sys = 'You are an expert JavaScript generator. Output only ' + jt + '. ' + jc + ' No markdown fences, no preamble.';
-  } else {
-    var hs = styleMode === 'separate' ? 'Put all CSS in a style block in the head.' : styleMode === 'tailwind' ? 'Use Tailwind CSS. Add the Tailwind CDN script in the head.' : styleMode === 'bare' ? 'No styling whatsoever.' : 'Use inline style attributes — fully self-contained.';
-    var hc = htmlDetail === 'commented' ? 'Add HTML comments.' : htmlDetail === 'full' ? 'Add comments and append EXPLAIN_START then a plain-English explanation then EXPLAIN_END at the very end.' : '';
-    sys = 'You are an expert HTML generator. Output complete ready-to-use HTML. ' + hs + ' ' + hc + ' No markdown fences, no preamble.';
+  if(btnCode) btnCode.classList.remove('active');
+  if(btnPreview) btnPreview.classList.remove('active');
+  if(paneCode) paneCode.classList.remove('active');
+  if(panePreview) panePreview.classList.remove('active');
+
+  const activeBtn = targetPanel.querySelector(`#${lang}-btn-${viewMode}`);
+  const activePane = targetPanel.querySelector(`#${lang}-pane-${viewMode}`);
+
+  if(activeBtn) activeBtn.classList.add('active');
+  if(activePane) activePane.classList.add('active');
+
+  if(viewMode === 'preview') syncRuntimeSandbox(lang);
+}
+
+function setTemplatePrompt(lang, sentence) {
+  const promptInput = document.getElementById(`${lang}-prompt-input`);
+  if(promptInput) {
+    promptInput.value = sentence;
+    promptInput.focus();
+    generateAiCode(lang); 
   }
+}
+
+function triggerLiveAiGeneration() {
+  const activeLanguageTab = getActiveTab();
+  const currentPromptEl = document.getElementById(`${activeLanguageTab}-prompt-input`);
+  const currentPromptVal = currentPromptEl ? currentPromptEl.value.trim() : '';
+  
+  if(currentPromptVal) {
+    generateAiCode(activeLanguageTab);
+  }
+}
+
+// REAL LIVE OPENROUTER INTERFACE ROUTINE
+async function generateAiCode(lang) {
+  const apiKey = sessionStorage.getItem('openrouter_key');
+  if(!apiKey) {
+    alert("API authentication credentials missing. Provide an OpenRouter key inside the header configuration box.");
+    return;
+  }
+
+  const promptInput = document.getElementById(`${lang}-prompt-input`);
+  if(!promptInput) return;
+  const rawPrompt = promptInput.value.trim();
+  if(!rawPrompt) {
+    alert("Please provide asset style design guidelines description attributes first.");
+    return;
+  }
+
+  const formatOpt = document.getElementById(`${lang}-format-select`) ? document.getElementById(`${lang}-format-select`).value : 'inline';
+  const depthOpt = document.getElementById(`${lang}-depth-select`) ? document.getElementById(`${lang}-depth-select`).value : 'full';
+
+  showGlobalToast("Contacting AI workspace nodes...");
+  
+  const structuralSystemBlueprintPrompt = `
+    You are an expert Frontend Component Code Generator. You output valid JSON data formats ONLY.
+    Your response must match this schema layout map precisely without any markdown block formatting code wrappers (\`\`\`json etc):
+    {
+      "html": "Pure layout markup block content here",
+      "css": "Clean workspace style definitions sheets rules here",
+      "js": "Functional execution event script codes here",
+      "explanation": "Detailed breakdown documentation lines string analysis"
+    }
+
+    User requirements context parameters:
+    - Current Workspace panel: "${lang.toUpperCase()}".
+    - Design Intent Request prompt: "${rawPrompt}".
+    - Style configuration option applied: "${formatOpt}".
+    - Content output depth option applied: "${depthOpt}".
+    
+    CRITICAL Instruction:
+    Provide interactive code blocks inside all JSON parameters (html, css, js) so they link up seamlessly and completely fill the preview sandbox runtime canvas simultaneously. Do not wrap anything inside markdown.
+  `;
 
   try {
-    // Points directly to our Node.js middleware server setup
-    var resp = await fetch('http://localhost:3000/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ systemPrompt: sys, userPrompt: input })
+    const apiServerResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": window.location.href,
+        "X-Title": "Web Helper Studio Environment"
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3-1-8b-instruct:free",
+        messages: [
+          { role: "system", content: structuralSystemBlueprintPrompt },
+          { role: "user", content: `Process component code layers generation formatting following target instructions.` }
+        ],
+        response_format: { type: "json_object" }
+      })
     });
+
+    if(!apiServerResponse.ok) throw new Error("API call transmission processing error.");
     
-    if(!resp.ok) throw new Error('Backend failed connection');
-    
-    var data = await resp.json();
-    var code = data.text || '';
+    const operationalDataResult = await apiServerResponse.json();
+    const cleanContentString = operationalDataResult.choices[0].message.content.trim();
+    const structuralCodeMatrix = JSON.parse(cleanContentString);
 
-    var explanation = '';
-    var em = code.match(/EXPLAIN_START([\s\S]*?)EXPLAIN_END/);
-    if (em) { explanation = em[1].trim(); code = code.replace(/EXPLAIN_START[\s\S]*?EXPLAIN_END/, '').trim(); }
-    code = code.replace(/^```[\w]*\n?/gm, '').replace(/^```\s*$/gm, '').trim();
+    const htmlEditor = document.getElementById('html-preview-editor');
+    const cssEditor = document.getElementById('css-preview-editor');
+    const jsEditor = document.getElementById('js-preview-editor');
 
-    state[lang].code = code;
-
-    var codeEl = document.getElementById(lang + '-code-out');
-    document.getElementById(lang + '-empty').style.display = 'none';
-    codeEl.style.display = 'block';
-    codeEl.innerHTML = lang === 'css' ? highlightCSS(escapeHtml(code)) : lang === 'js' ? highlightJS(escapeHtml(code)) : highlightHTML(code);
-
-    if (lang === 'html') {
-      document.getElementById('html-live-editor').value = code;
-      liveRefresh();
-      var previewBtn = document.querySelector('#html-panel .out-tab:nth-child(2)');
-      if (previewBtn) switchOut('html', 'preview', previewBtn);
+    if(structuralCodeMatrix.html) {
+      appState.html.activeCode = structuralCodeMatrix.html;
+      if(htmlEditor) htmlEditor.value = structuralCodeMatrix.html;
+    }
+    if(structuralCodeMatrix.css) {
+      appState.css.activeCode = structuralCodeMatrix.css;
+      if(cssEditor) cssEditor.value = structuralCodeMatrix.css;
+    }
+    if(structuralCodeMatrix.js) {
+      appState.js.activeCode = structuralCodeMatrix.js;
+      if(jsEditor) jsEditor.value = structuralCodeMatrix.js;
     }
 
-    var explainEl = document.getElementById(lang + '-explain-content');
-    if (explanation) {
-      var lines = explanation.split('\n').filter(function(l) { return l.trim(); });
-      explainEl.innerHTML = lines.map(function(line) {
-        if (/^#+\s/.test(line)) return '<h3>' + line.replace(/^#+\s*/, '') + '</h3>';
-        if (/^[-•]\s/.test(line)) return '<li>' + line.replace(/^[-•]\s*/, '') + '</li>';
-        return '<p>' + line + '</p>';
-      }).join('');
-    } else {
-      explainEl.innerHTML = '<p>No explanation generated. Select <strong>Full breakdown</strong> to get one.</p>';
-    }
+    // Populate display output containers and hide empty archive screen states cleanly!
+    document.querySelectorAll('.panel').forEach(p => {
+      const pLang = p.id.split('-')[0];
+      const codeTarget = p.querySelector(`#${pLang}-code-target`);
+      const emptyState = p.querySelector(`#${pLang}-empty-view`);
+      const explanationContainer = p.querySelector(`#${pLang}-explanation-box`);
 
-  } catch(err) {
-    showErr(lang, 'Failed to generate. Check your local server connection and try again.');
-    console.error(err);
+      if(emptyState) emptyState.style.display = 'none';
+      if(codeTarget) {
+        codeTarget.style.display = 'block';
+        codeTarget.textContent = structuralCodeMatrix[pLang] || '';
+      }
+      if(explanationContainer && structuralCodeMatrix.explanation) {
+        explanationContainer.innerHTML = `<p>${structuralCodeMatrix.explanation}</p>`;
+      }
+    });
+
+    // Recompile sandbox states concurrently
+    syncRuntimeSandbox('html');
+    syncRuntimeSandbox('css');
+    syncRuntimeSandbox('js');
+    showGlobalToast("AI Component assets compiled successfully!");
+
+  } catch (error) {
+    console.error("AI Generation processing fault details: ", error);
+    alert("AI compilation module error encountered. Please check your OpenRouter Key settings.");
   }
-
-  btn.disabled = false;
-  btn.classList.remove('loading');
 }
 
-function copyOut(lang) {
-  if (!state[lang].code) return;
-  navigator.clipboard.writeText(state[lang].code).then(function() { showToast('Copied!'); });
+function syncRuntimeSandbox(lang) {
+  const frameElement = document.getElementById(`${lang}-sandbox-frame`);
+  if(!frameElement) return;
+
+  const liveHtml = document.getElementById('html-preview-editor') ? document.getElementById('html-preview-editor').value : appState.html.activeCode;
+  const liveCss = document.getElementById('css-preview-editor') ? document.getElementById('css-preview-editor').value : appState.css.activeCode;
+  const liveJs = document.getElementById('js-preview-editor') ? document.getElementById('js-preview-editor').value : appState.js.activeCode;
+
+  const runnableScript = liveJs.replace(/export\s+function\s+\w+\(\)\s*\{/, '').replace(/\}$/, '');
+
+  let runtimeBlobContext = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { background: #ffffff; color: #121620; padding: 20px; font-family: sans-serif; margin:0; }
+        ${liveCss}
+      </style>
+    </head>
+    <body>
+      ${liveHtml}
+      <script>
+        try {
+          ${runnableScript}
+        } catch(e) { console.error("Sandbox Execution Error:", e); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  frameElement.srcdoc = runtimeBlobContext;
 }
 
-function dlOut(lang) {
-  if (!state[lang].code) return;
-  var ext = lang === 'css' ? 'css' : lang === 'js' ? 'js' : 'html';
-  var blob = new Blob([state[lang].code], { type: 'text/plain' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'generated.' + ext;
-  a.click();
-  showToast('Downloaded as generated.' + ext);
+function copyWorkspaceOutput(lang) {
+  const editorElement = document.getElementById(`${lang}-preview-editor`);
+  const liveContent = editorElement ? editorElement.value : appState[lang].activeCode;
+  navigator.clipboard.writeText(liveContent || '').then(() => {
+    showGlobalToast("Copied code context payload cleanly!");
+  });
 }
 
-function showToast(msg) {
-  var t = document.getElementById('toast');
-  document.getElementById('toast-msg').textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
+function downloadWorkspaceOutput(lang, extension) {
+  const editorElement = document.getElementById(`${lang}-preview-editor`);
+  const liveContent = editorElement ? editorElement.value : appState[lang].activeCode;
+  if(!liveContent) return;
+  const dataBlob = new Blob([liveContent], { type: 'text/plain;charset=utf-8' });
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.href = URL.createObjectURL(dataBlob);
+  downloadAnchor.download = `ai_output_${lang}.${extension}`;
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  document.body.removeChild(downloadAnchor);
 }
 
-function showErr(lang, msg) {
-  var el = document.getElementById(lang + '-error');
-  document.getElementById(lang + '-error-msg').textContent = msg;
-  el.classList.add('show');
-}
-
-function hideErr(lang) {
-  document.getElementById(lang + '-error').classList.remove('show');
+function showGlobalToast(msg) {
+  const toastElement = document.getElementById('global-toast');
+  const toastText = document.getElementById('toast-text');
+  if(toastElement && toastText) {
+    toastText.textContent = msg;
+    toastElement.classList.add('show');
+    setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
+  }
 }
