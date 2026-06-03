@@ -1,4 +1,4 @@
-// System Local Cache State
+// System Local Cache State - RESTORED FULL ORIGINAL STRUCTURE
 const appState = {
   html: {
     activeCode: '',
@@ -22,6 +22,22 @@ const starterTemplates = [
     css: 'body { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top left, #7c3aed, transparent 32%), #07111f; }\n.glass-card { width: min(420px, 92vw); padding: 32px; border: 1px solid rgba(255,255,255,0.08); background: rgba(16,19,31,0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); font-family: sans-serif; }\n.glass-card .eyebrow { color: #00d4ff; text-transform: uppercase; letter-spacing: 0.15em; font-size: 11px; font-weight: 700; margin-bottom: 8px; }\n.glass-card h2 { color: #fff; font-size: 24px; font-weight: 800; margin-bottom: 12px; font-family: sans-serif; }\n.glass-card p { color: #7a8baa; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }\n.glass-card button { background: #7c4dff; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }\n.glass-card button:hover { background: #651fff; }',
     js: 'document.querySelector(".glass-card button")?.addEventListener("click", () => { alert("Analytical pipeline connected."); });',
     explanation: 'Starter template applied: high contrast architectural glass template.'
+  },
+  {
+    lang: 'css',
+    match: 'neon button',
+    html: '<main class="neon-stage">\n  <button class="neon-button">LAUNCH INSTANCE</button>\n</main>',
+    css: 'body { min-height: 100vh; display: grid; place-items: center; background: #030308; }\n.neon-button { background: transparent; padding: 16px 32px; border: 1px solid #00e5ff; color: #fff; font-family: monospace; font-weight: bold; letter-spacing: 0.1em; box-shadow: 0 0 15px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.2s ease; }\n.neon-button:hover { box-shadow: 0 0 30px #00e5ff; background: #00e5ff; color: #000; }',
+    js: 'document.querySelector(".neon-button")?.addEventListener("click", e => { e.currentTarget.textContent = "SEQUENCE ACTIVE"; });',
+    explanation: 'Starter template applied: reactive peripheral glow neon button.'
+  },
+  {
+    lang: 'css',
+    match: 'animated loader',
+    html: '<div class="loader-card">\n  <div class="quantum-orbit"></div>\n  <strong>SYNAPSE STREAMING</strong>\n</div>',
+    css: 'body { min-height: 100vh; display: grid; place-items: center; background: #030308; color: #fff; font-family: monospace; }\n.loader-card { text-align: center; display: grid; gap: 20px; }\n.quantum-orbit { width: 50px; height: 50px; border: 3px solid rgba(0,229,255,0.1); border-top-color: #00e5ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }\n@keyframes spin { to { transform: rotate(360deg); } }',
+    js: 'console.log("Loader loop initiated.");',
+    explanation: 'Starter template applied: smooth quantum spinning asset.'
   }
 ];
 
@@ -30,34 +46,59 @@ window.addEventListener('DOMContentLoaded', () => {
   const viewMode = urlParams.get('view');
   const targetLang = urlParams.get('lang') || 'html';
 
-  // 1. BACKUP GLOBAL CLICK LISTENER (Para kahit anong button ang pindutin, gagana)
+  // AUTOMATIC LOGIN LISTENERS (Para pumasok kahit anong event ang tumakbo)
+  const loginInput = document.getElementById('apikey-input') || document.querySelector('input');
+  if (loginInput) {
+    loginInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveApiKey();
+      }
+    });
+  }
+
   document.addEventListener('click', (e) => {
-    const target = e.target;
-    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' && target.type === 'submit') {
-      const btnText = target.innerText || target.value || '';
-      if (/login|enter|submit|connect|pasok|bumuo/i.test(btnText)) {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+      const btn = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+      if (/login|submit|enter|pasok|bumuo/i.test(btn.innerText || btn.value)) {
         e.preventDefault();
         saveApiKey();
       }
     }
   });
 
-  // 2. BACKUP GLOBAL ENTER KEY (Kahit nasaan ang cursor, basta nag-Enter sa input, pasok)
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
-      e.preventDefault();
-      saveApiKey();
-    }
-  });
-
   if (viewMode === 'editor' || viewMode === 'preview') {
-    forceHideOverlays();
+    document.getElementById('main-application-container').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.body.classList.remove('auth-mode');
+    
+    if (viewMode === 'editor') {
+      const view = document.getElementById('standalone-editor-view');
+      if (view) view.style.display = 'flex';
+      const indicator = document.getElementById('editor-tab-indicator');
+      if (indicator) indicator.textContent = `${targetLang.toUpperCase()} ENGINE REPOSITORY`;
+      const txt = document.getElementById('standalone-textarea');
+      if (txt) txt.value = localStorage.getItem(`wowers_cross_${targetLang}`) || appState[targetLang].placeholderHtml;
+    } else {
+      const previewView = document.getElementById('standalone-preview-view');
+      if (previewView) previewView.style.display = 'flex';
+      renderStandalonePreview();
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === `wowers_cross_${targetLang}` && viewMode === 'editor') {
+        document.getElementById('standalone-textarea').value = e.newValue;
+      }
+      if (e.key.startsWith('wowers_cross_') && viewMode === 'preview') {
+        renderStandalonePreview();
+      }
+    });
     return;
   }
 
   initializeEditors();
 
-  // Automatic bypass kung may susi na
+  // Kung may key na sa cache, papasukin agad
   if (sessionStorage.getItem('openrouter_key')) {
     unlockWorkspace();
     return;
@@ -69,24 +110,12 @@ window.addEventListener('DOMContentLoaded', () => {
     .catch(() => {});
 });
 
-function forceHideOverlays() {
-  const elementsToHide = [
-    '#auth-overlay', '.hero-section', '.auth-stage', '.auth-wrapper', '.login-screen'
-  ];
-  elementsToHide.forEach(selector => {
-    const el = document.querySelector(selector);
-    if (el) el.style.setProperty('display', 'none', 'important');
-  });
-
-  const elementsToShow = [
-    '#main-application-container', '.workspace-wrapper', '#app-body'
-  ];
-  elementsToShow.forEach(selector => {
-    const el = document.querySelector(selector);
-    if (el) el.style.setProperty('display', 'flex', 'important');
-  });
-
-  document.body.classList.remove('auth-mode');
+function renderStandalonePreview() {
+  const h = localStorage.getItem('wowers_cross_html') || '';
+  const c = localStorage.getItem('wowers_cross_css') || '';
+  const j = localStorage.getItem('wowers_cross_js') || '';
+  const frame = document.getElementById('standalone-iframe');
+  if (frame) frame.srcdoc = buildSandboxDoc(h, c, j);
 }
 
 function initializeEditors() {
@@ -98,28 +127,40 @@ function initializeEditors() {
   });
 }
 
+function normalizeOpenRouterKey(value) {
+  return String(value || '').trim().replace(/^Bearer\s+/i, '');
+}
+
 function unlockWorkspace() {
-  // Tatanggalin ang lahat ng posibleng lock screens at ipapakita ang workspace mo
-  forceHideOverlays();
+  document.body.classList.remove('auth-mode');
+  document.getElementById('app-body')?.classList.remove('auth-mode');
+  
+  // Tinatago ang login panels nang hindi sinisira ang layout trees
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'none';
+  
+  const hero = document.querySelector('.hero-section');
+  if (hero) hero.style.display = 'none';
+  
+  const mainApp = document.getElementById('main-application-container');
+  if (mainApp) mainApp.style.display = 'block';
+
+  const workspaceWrap = document.querySelector('.workspace-wrapper');
+  if (workspaceWrap) workspaceWrap.style.display = 'flex';
+
   syncAllSandboxes();
 }
 
 function saveApiKey() {
-  // Hahanapin ang kahit anong input field na pwedeng pagkunang ng key
-  const keyInput = document.querySelector('input[type="password"]') || 
-                   document.querySelector('input[placeholder*="API"]') ||
-                   document.getElementById('apikey-input') ||
-                   document.querySelector('input');
-                   
-  const keyVal = keyInput ? keyInput.value.trim().replace(/^Bearer\s+/i, '') : 'bypass';
+  const keyInput = document.getElementById('apikey-input') || document.querySelector('input');
+  const keyVal = keyInput ? normalizeOpenRouterKey(keyInput.value) : '';
   
-  // Pinapapasok ka na kahit walang nilagay para hindi ka ma-stuck
-  sessionStorage.setItem('openrouter_key', keyVal || 'dev_key');
+  sessionStorage.setItem('openrouter_key', keyVal || 'dev_bypass_key');
   showGlobalToast('Workspace grid link connected!');
   unlockWorkspace();
 }
 
-// --- REST OF THE LOGIC (STAYS EXACTLY THE SAME) ---
+// RESTORED ORIGINAL FULL WORKSPACE TAB AND NAVIGATION ENGINE
 function switchMainTab(targetLang) {
   document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(pane => pane.classList.remove('active'));
@@ -140,46 +181,114 @@ function switchOutputTab(lang, viewMode) {
   if (viewMode === 'preview') syncRuntimeSandbox(lang);
 }
 
-function buildSystemPrompt(lang, rawPrompt) {
-  return `You are a frontend code generator. Return JSON only: {"html":"","css":"","js":"","explanation":""}. Request: ${rawPrompt}`;
+function setTemplatePrompt(lang, sentence) {
+  const promptInput = document.getElementById(`${lang}-prompt-input`);
+  if (promptInput) { promptInput.value = sentence; promptInput.focus(); }
+  const template = findStarterTemplate(lang, sentence);
+  if (template) {
+    applyGeneratedCode(template, lang);
+    switchMainTab(lang);
+    switchOutputTab(lang, 'code');
+    showGlobalToast('Template architectural matrix mounted.');
+  }
+}
+
+function triggerLiveAiGeneration() {
+  const lang = getActiveTab();
+  const val = document.getElementById(`${lang}-prompt-input`)?.value.trim();
+  if (val) generateAiCode(lang);
+}
+
+function buildSystemPrompt(lang, rawPrompt, formatOpt, depthOpt) {
+  return `You are a frontend code generator. Your ENTIRE response must be a single JSON object.
+Start your response with { and end with }. No text before or after. No markdown fences. No prose.
+Required JSON shape: {"html":"...","css":"...","js":"...","explanation":"..."}
+User request: ${rawPrompt}`;
 }
 
 async function generateAiCode(lang) {
-  const promptEl = document.getElementById(`${lang}-prompt-input`) || document.querySelector(`.${lang}-prompt-input`);
+  const apiKey = normalizeOpenRouterKey(sessionStorage.getItem('openrouter_key'));
+  const promptEl = document.getElementById(`${lang}-prompt-input`);
   if (!promptEl) return;
   const rawPrompt = promptEl.value.trim();
   if (!rawPrompt) return;
 
+  const formatOpt = document.getElementById(`${lang}-format-select`)?.value || 'inline';
+  const depthOpt = document.getElementById(`${lang}-depth-select`)?.value || 'full';
+
   setGeneratingState(lang, true);
   try {
-    const res = await fetch('/api/generate', {
+    const apiResponse = await fetch('/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ systemPrompt: buildSystemPrompt(lang, rawPrompt), userMessage: rawPrompt })
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+      },
+      body: JSON.stringify({
+        systemPrompt: buildSystemPrompt(lang, rawPrompt, formatOpt, depthOpt),
+        userMessage: rawPrompt
+      })
     });
-    const data = await res.json();
-    if (data) applyGeneratedCode(data, lang);
-  } catch (e) {
-    console.error(e);
+    const responseData = await apiResponse.json();
+    const rawText = extractTextPayload(responseData).trim();
+    const codeData = parseGeneratedJson(rawText);
+    applyGeneratedCode(codeData, lang);
+  } catch (err) {
+    console.error(err);
   } finally {
     setGeneratingState(lang, false);
   }
 }
 
+function findStarterTemplate(lang, sentence) {
+  const s = String(sentence || '').toLowerCase();
+  return starterTemplates.find(t => t.lang === lang && s.includes(t.match));
+}
+
 function applyGeneratedCode(codeMatrix, activeLang) {
+  const normalized = normalizeGeneratedCode(codeMatrix, activeLang);
+
   ['html', 'css', 'js'].forEach(lang => {
-    const val = codeMatrix[lang] || '';
-    if (val) {
-      appState[lang].activeCode = val;
-      const editor = document.getElementById(`${lang}-preview-editor`) || document.querySelector(`.${lang}-preview-editor`);
-      if (editor) editor.value = val;
+    if (typeof normalized[lang] === 'string') {
+      appState[lang].activeCode = normalized[lang];
+      const editor = document.getElementById(`${lang}-preview-editor`);
+      if (editor) editor.value = normalized[lang];
+      localStorage.setItem(`wowers_cross_${lang}`, normalized[lang]);
     }
+  });
+
+  document.querySelectorAll('.panel').forEach(panel => {
+    const pLang = panel.id.split('-')[0];
+    const codeTarget = document.getElementById(`${pLang}-code-target`);
+    if (codeTarget) codeTarget.textContent = appState[pLang].activeCode || '';
   });
   syncAllSandboxes();
 }
 
+function normalizeGeneratedCode(raw, requestedLang) {
+  const m = (raw && typeof raw === 'object') ? raw : {};
+  return {
+    html: str(m.html) || (requestedLang === 'html' ? m.code : appState.html.activeCode),
+    css: str(m.css) || (requestedLang === 'css' ? m.code : appState.css.activeCode),
+    js: str(m.js || m.javascript) || (requestedLang === 'js' ? m.code : appState.js.activeCode),
+    explanation: str(m.explanation) || 'Active layer compiled.'
+  };
+}
+
+function str(v) { return typeof v === 'string' ? v : ''; }
+
+function extractTextPayload(apiResponse) { return apiResponse?.text || apiResponse?.content || apiResponse || ''; }
+
+function parseGeneratedJson(rawText) {
+  try { return JSON.parse(rawText); } catch (_) {
+    const fi = rawText.indexOf('{'), li = rawText.lastIndexOf('}');
+    if (fi >= 0 && li > fi) return JSON.parse(rawText.slice(fi, li + 1));
+  }
+  return {};
+}
+
 function buildSandboxDoc(html, css, js) {
-  return `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
+  return `<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:sans-serif;}${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
 }
 
 function syncAllSandboxes() {
@@ -188,25 +297,35 @@ function syncAllSandboxes() {
 
 function syncRuntimeSandbox(lang) {
   const liveHtml = document.getElementById('html-preview-editor')?.value || appState.html.activeCode;
-  const liveCss = document.getElementById('css-css-editor')?.value || appState.css.activeCode;
+  const liveCss = document.getElementById('css-preview-editor')?.value || appState.css.activeCode;
   const liveJs = document.getElementById('js-preview-editor')?.value || appState.js.activeCode;
-  const frame = document.getElementById(`${lang}-sandbox-frame`) || document.querySelector('.sandbox-frame');
-  if (frame) frame.srcdoc = buildSandboxDoc(liveHtml, liveCss, liveJs);
+
+  const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
+  const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
+  if (sidebarFrame) sidebarFrame.srcdoc = doc;
 }
 
 function setGeneratingState(lang, loading) {
-  const btn = document.querySelector(`#${lang}-panel .generate-btn`) || document.querySelector('.generate-btn');
+  const btn = document.querySelector(`#${lang}-panel .generate-btn`);
   if (btn) btn.disabled = loading;
 }
 
 function showGlobalToast(msg) {
-  const toast = document.getElementById('global-toast') || document.querySelector('.toast');
-  if (toast) {
+  const toast = document.getElementById('global-toast');
+  const txt = document.getElementById('toast-text');
+  if (toast && txt) {
+    txt.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    setTimeout(() => toast.classList.remove('show'), 2500);
   }
 }
 
 function getActiveTab() {
+  const activeTabBtn = document.querySelector('.nav-tab.active');
+  if (activeTabBtn) {
+    if (activeTabBtn.classList.contains('html-nav')) return 'html';
+    if (activeTabBtn.classList.contains('css-nav')) return 'css';
+    if (activeTabBtn.classList.contains('js-nav')) return 'js';
+  }
   return 'html';
-                            }
+  }
