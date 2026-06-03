@@ -41,13 +41,22 @@ const starterTemplates = [
   }
 ];
 
+// Helper to reliably find the key input field across layout updates
+function findApiKeyInputElement() {
+  return document.getElementById('apikey-input') || 
+         document.querySelector('.auth-form-group input') || 
+         document.querySelector('.api-key-container input') ||
+         document.querySelector('input[type="password"]') ||
+         document.querySelector('input[placeholder*="API"]');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const viewMode = urlParams.get('view');
   const targetLang = urlParams.get('lang') || 'html';
 
-  // Strict binding to your original input element ID
-  const loginInput = document.getElementById('apikey-input');
+  // Smart Input Binding
+  const loginInput = findApiKeyInputElement();
   if (loginInput) {
     loginInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -57,25 +66,47 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Smart Button Binding
+  const loginButton = document.getElementById('login-btn') || 
+                      document.querySelector('.auth-submit-btn') || 
+                      document.querySelector('.api-key-container button') ||
+                      document.querySelector('.auth-btn') ||
+                      document.querySelector('button[type="submit"]');
+  
+  if (loginButton) {
+    loginButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveApiKey();
+    });
+  }
+
   if (viewMode === 'editor' || viewMode === 'preview') {
-    document.getElementById('main-application-container').style.display = 'none';
-    document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('app-body').classList.remove('auth-mode');
+    const mainContainer = document.getElementById('main-application-container') || document.querySelector('.workspace-wrapper');
+    if (mainContainer) mainContainer.style.display = 'none';
+    
+    const overlay = document.getElementById('auth-overlay') || document.querySelector('.hero-section');
+    if (overlay) overlay.style.display = 'none';
+    
+    document.body.classList.remove('auth-mode');
+    document.getElementById('app-body')?.classList.remove('auth-mode');
     
     if (viewMode === 'editor') {
       const view = document.getElementById('standalone-editor-view');
-      view.style.display = 'flex';
-      document.getElementById('editor-tab-indicator').textContent = `${targetLang.toUpperCase()} REPOSITORY LAYER`;
+      if (view) view.style.display = 'flex';
+      const indicator = document.getElementById('editor-tab-indicator');
+      if (indicator) indicator.textContent = `${targetLang.toUpperCase()} REPOSITORY LAYER`;
       const txt = document.getElementById('standalone-textarea');
-      txt.value = localStorage.getItem(`wowers_cross_${targetLang}`) || appState[targetLang].placeholderHtml;
+      if (txt) txt.value = localStorage.getItem(`wowers_cross_${targetLang}`) || appState[targetLang].placeholderHtml;
     } else {
-      document.getElementById('standalone-preview-view').style.display = 'flex';
+      const previewView = document.getElementById('standalone-preview-view');
+      if (previewView) previewView.style.display = 'flex';
       renderStandalonePreview();
     }
 
     window.addEventListener('storage', (e) => {
       if (e.key === `wowers_cross_${targetLang}` && viewMode === 'editor') {
-        document.getElementById('standalone-textarea').value = e.newValue;
+        const saTextarea = document.getElementById('standalone-textarea');
+        if (saTextarea) saTextarea.value = e.newValue;
       }
       if (e.key.startsWith('wowers_cross_') && viewMode === 'preview') {
         renderStandalonePreview();
@@ -110,7 +141,7 @@ function renderStandalonePreview() {
 function initializeEditors() {
   ['html', 'css', 'js'].forEach(lang => {
     appState[lang].activeCode = appState[lang].placeholderHtml;
-    const editor = document.getElementById(`${lang}-preview-editor`);
+    const editor = document.getElementById(`${lang}-preview-editor`) || document.querySelector(`.${lang}-preview-editor`) || document.querySelector(`.${lang}-editor-textarea`);
     if (editor) editor.value = appState[lang].placeholderHtml;
     localStorage.setItem(`wowers_cross_${lang}`, appState[lang].placeholderHtml);
   });
@@ -121,15 +152,37 @@ function normalizeOpenRouterKey(value) {
 }
 
 function unlockWorkspace() {
+  // Clear any possible block states from body
+  document.body.classList.remove('auth-mode');
   document.getElementById('app-body')?.classList.remove('auth-mode');
+  
+  // Force clean concealment of ALL login screen elements variants
   const overlay = document.getElementById('auth-overlay');
   if (overlay) overlay.style.display = 'none';
+  
+  const hero = document.querySelector('.hero-section');
+  if (hero) hero.style.display = 'none';
+
+  const authStage = document.querySelector('.auth-stage');
+  if (authStage) authStage.style.display = 'none';
+  
+  // Force clear visibility of workspace interfaces variants
+  const mainApp = document.getElementById('main-application-container');
+  if (mainApp) mainApp.style.display = 'block';
+
+  const workspaceWrap = document.querySelector('.workspace-wrapper');
+  if (workspaceWrap) workspaceWrap.style.display = 'flex';
+
   syncAllSandboxes();
 }
 
 function saveApiKey() {
-  const keyInput = document.getElementById('apikey-input');
-  if (!keyInput) return;
+  const keyInput = findApiKeyInputElement();
+                   
+  if (!keyInput) {
+    alert('System operational issue: Key terminal target interface cannot be mapped.');
+    return;
+  }
   
   const keyVal = normalizeOpenRouterKey(keyInput.value);
   if (keyVal) {
@@ -162,7 +215,7 @@ function switchOutputTab(lang, viewMode) {
 }
 
 function setTemplatePrompt(lang, sentence) {
-  const promptInput = document.getElementById(`${lang}-prompt-input`);
+  const promptInput = document.getElementById(`${lang}-prompt-input`) || document.querySelector(`.${lang}-prompt-input`);
   if (promptInput) { promptInput.value = sentence; promptInput.focus(); }
   const template = findStarterTemplate(lang, sentence);
   if (template) {
@@ -175,7 +228,8 @@ function setTemplatePrompt(lang, sentence) {
 
 function triggerLiveAiGeneration() {
   const lang = getActiveTab();
-  const val = document.getElementById(`${lang}-prompt-input`)?.value.trim();
+  const promptInput = document.getElementById(`${lang}-prompt-input`) || document.querySelector(`.${lang}-prompt-input`);
+  const val = promptInput?.value.trim();
   if (val) generateAiCode(lang);
 }
 
@@ -198,13 +252,13 @@ User request: ${rawPrompt}`;
 
 async function generateAiCode(lang) {
   const apiKey = normalizeOpenRouterKey(sessionStorage.getItem('openrouter_key'));
-  const promptEl = document.getElementById(`${lang}-prompt-input`);
+  const promptEl = document.getElementById(`${lang}-prompt-input`) || document.querySelector(`.${lang}-prompt-input`);
   if (!promptEl) return;
   const rawPrompt = promptEl.value.trim();
   if (!rawPrompt) { alert('Specify system configuration requirements.'); return; }
 
-  const formatOpt = document.getElementById(`${lang}-format-select`)?.value ?? 'inline';
-  const depthOpt = document.getElementById(`${lang}-depth-select`)?.value ?? 'full';
+  const formatOpt = document.getElementById(`${lang}-format-select`)?.value || document.querySelector(`.${lang}-format-select`)?.value || 'inline';
+  const depthOpt = document.getElementById(`${lang}-depth-select`)?.value || document.querySelector(`.${lang}-depth-select`)?.value || 'full';
 
   setGeneratingState(lang, true);
   showGlobalToast('⚡ Contacting decentralized core network nodes...');
@@ -251,7 +305,7 @@ async function generateAiCode(lang) {
       alert('Error: ' + err.message);
     }
   } finally {
-    setGeneratingState(lang, false); // Restored fixed standard statement block cleanly
+    setGeneratingState(lang, false);
   }
 }
 
@@ -266,7 +320,7 @@ function applyGeneratedCode(codeMatrix, activeLang) {
   ['html', 'css', 'js'].forEach(lang => {
     if (typeof normalized[lang] === 'string') {
       appState[lang].activeCode = normalized[lang];
-      const editor = document.getElementById(`${lang}-preview-editor`);
+      const editor = document.getElementById(`${lang}-preview-editor`) || document.querySelector(`.${lang}-preview-editor`) || document.querySelector(`.${lang}-editor-textarea`);
       if (editor) editor.value = normalized[lang];
       localStorage.setItem(`wowers_cross_${lang}`, normalized[lang]);
     }
@@ -274,9 +328,9 @@ function applyGeneratedCode(codeMatrix, activeLang) {
 
   document.querySelectorAll('.panel').forEach(panel => {
     const pLang = panel.id.split('-')[0];
-    const codeTarget = document.getElementById(`${pLang}-code-target`);
+    const codeTarget = document.getElementById(`${pLang}-code-target`) || panel.querySelector('.compiled-display');
     const emptyState = document.getElementById(`${pLang}-empty-view`);
-    const explBox = document.getElementById(`${pLang}-explanation-box`);
+    const explBox = document.getElementById(`${pLang}-explanation-box`) || panel.querySelector('.explanation-box');
 
     if (emptyState) emptyState.style.display = 'none';
     if (codeTarget) { codeTarget.style.display = 'block'; codeTarget.textContent = appState[pLang].activeCode || ''; }
@@ -342,9 +396,9 @@ function syncAllSandboxes() {
 }
 
 function syncRuntimeSandbox(lang) {
-  const liveHtml = document.getElementById('html-preview-editor')?.value ?? appState.html.activeCode;
-  const liveCss = document.getElementById('css-preview-editor')?.value ?? appState.css.activeCode;
-  const liveJs = document.getElementById('js-preview-editor')?.value ?? appState.js.activeCode;
+  const liveHtml = document.getElementById('html-preview-editor')?.value || document.querySelector('.html-preview-editor')?.value || appState.html.activeCode;
+  const liveCss = document.getElementById('css-preview-editor')?.value || document.querySelector('.css-preview-editor')?.value || appState.css.activeCode;
+  const liveJs = document.getElementById('js-preview-editor')?.value || document.querySelector('.js-preview-editor')?.value || appState.js.activeCode;
 
   appState.html.activeCode = liveHtml;
   appState.css.activeCode = liveCss;
@@ -355,22 +409,26 @@ function syncRuntimeSandbox(lang) {
   localStorage.setItem('wowers_cross_js', liveJs);
 
   const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
-  const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
+  const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`) || document.querySelector(`#${lang}-panel .sandbox-frame`) || document.querySelector('.sandbox-frame');
   if (sidebarFrame) sidebarFrame.srcdoc = doc;
 }
 
 function setGeneratingState(lang, loading) {
-  const btn = document.querySelector(`#${lang}-panel .generate-btn`);
+  const btn = document.querySelector(`#${lang}-panel .generate-btn`) || document.querySelector('.generate-btn');
   if (!btn) return;
   btn.disabled = loading;
   btn.innerHTML = loading ? '<i class="fa-solid fa-spinner fa-spin"></i> GENERATING...' : '<i class="fa-solid fa-wand-magic-sparkles"></i> Bumuo gamit ang AI';
 }
 
 function showGlobalToast(msg) {
-  const toastElement = document.getElementById('global-toast');
-  const toastText = document.getElementById('toast-text');
-  if (toastElement && toastText) {
-    toastText.textContent = msg;
+  const toastElement = document.getElementById('global-toast') || document.querySelector('.toast');
+  const toastText = document.getElementById('toast-text') || document.querySelector('.toast-text') || toastElement;
+  if (toastElement) {
+    if (toastText && toastText !== toastElement) {
+      toastText.textContent = msg;
+    } else {
+      toastElement.textContent = msg;
+    }
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
@@ -379,9 +437,9 @@ function showGlobalToast(msg) {
 function getActiveTab() {
   const activeTabBtn = document.querySelector('.nav-tab.active');
   if (activeTabBtn) {
-    if (activeTabBtn.classList.contains('html-nav')) return 'html';
-    if (activeTabBtn.classList.contains('css-nav')) return 'css';
-    if (activeTabBtn.classList.contains('js-nav')) return 'js';
+    if (activeTabBtn.classList.contains('html-nav') || activeTabBtn.textContent.includes('HTML')) return 'html';
+    if (activeTabBtn.classList.contains('css-nav') || activeTabBtn.textContent.includes('CSS')) return 'css';
+    if (activeTabBtn.classList.contains('js-nav') || activeTabBtn.textContent.includes('JS')) return 'js';
   }
   return 'html';
 }
@@ -393,7 +451,7 @@ function openStandaloneView(viewType) {
     const editorView = document.getElementById('standalone-editor-view');
     const textarea = document.getElementById('standalone-textarea');
     const tabIndicator = document.getElementById('editor-tab-indicator');
-    const sourceTextEditor = document.getElementById(`${activeLang}-preview-editor`);
+    const sourceTextEditor = document.getElementById(`${activeLang}-preview-editor`) || document.querySelector('.editor-textarea');
     
     if (editorView && textarea) {
       textarea.value = sourceTextEditor ? sourceTextEditor.value : appState[activeLang].activeCode;
@@ -452,11 +510,8 @@ function syncStandaloneToStorage() {
   
   appState[activeLang].activeCode = currentCodeVal;
   
-  const targetMainEditor = document.getElementById(`${activeLang}-preview-editor`);
+  const targetMainEditor = document.getElementById(`${activeLang}-preview-editor`) || document.querySelector('.editor-textarea');
   if (targetMainEditor) targetMainEditor.value = currentCodeVal;
-  
-  const targetCodeViewDisplay = document.querySelector(`#${activeLang}-panel #${activeLang}-code-target`);
-  if (targetCodeViewDisplay) targetCodeViewDisplay.textContent = currentCodeVal;
   
   syncRuntimeSandbox(activeLang);
 }
