@@ -190,6 +190,16 @@
     </div>
   </div>
 
+  <!-- Mobile Bottom Action Bar -->
+  <div class="mobile-bottom-actions" id="mobile-bottom-bar">
+    <button class="mobile-bottom-btn" id="mobile-editor-btn" onclick="openStandaloneView('editor')">
+      <i class="fa-solid fa-code"></i> <span id="mobile-editor-label">CSS CODE EDITOR</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+    </button>
+    <button class="mobile-bottom-btn" onclick="openStandaloneView('preview')">
+      <i class="fa-solid fa-eye"></i> LIVE PREVIEW <i class="fa-solid fa-arrow-up-right-from-square"></i>
+    </button>
+  </div>
+
   <div id="global-toast">
     <span id="toast-text">Workspace established.</span>
   </div>
@@ -201,6 +211,23 @@
       if (document.getElementById('js-panel').classList.contains('active')) return 'js';
       return 'html';
     }
+    // Update mobile bottom bar label when tab switches
+    const _origSwitchMainTab = window.switchMainTab;
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabs = document.querySelectorAll('.nav-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          setTimeout(() => {
+            const active = getActiveTab();
+            const label = document.getElementById('mobile-editor-label');
+            if (label) label.textContent = active.toUpperCase() + ' CODE EDITOR';
+          }, 50);
+        });
+      });
+      // Set initial label
+      const label = document.getElementById('mobile-editor-label');
+      if (label) label.textContent = 'HTML CODE EDITOR';
+    });
   </script>
 </body>
 </html>
