@@ -89,7 +89,6 @@ const starterTemplates = [
   }
 ];
 
-// Check for existing API key immediately upon loading page
 window.addEventListener('DOMContentLoaded', () => {
   initializeEditors();
 
@@ -105,9 +104,7 @@ window.addEventListener('DOMContentLoaded', () => {
     .then(config => {
       if(config?.hasServerKey) unlockWorkspace();
     })
-    .catch(() => {
-      // Keep auth mode active when the static page is opened without the backend server.
-    });
+    .catch(() => {});
 });
 
 function initializeEditors() {
@@ -201,7 +198,6 @@ function triggerLiveAiGeneration() {
   }
 }
 
-// REAL LIVE OPENROUTER INTERFACE ROUTINE
 async function generateAiCode(lang) {
   const apiKey = normalizeOpenRouterKey(sessionStorage.getItem('openrouter_key'));
 
@@ -217,82 +213,65 @@ async function generateAiCode(lang) {
   const depthOpt = document.getElementById(`${lang}-depth-select`) ? document.getElementById(`${lang}-depth-select`).value : 'full';
 
   setGeneratingState(lang, true);
-  showGlobalToast('Contacting AI workspace nodes...');
+  showGlobalToast('🤖 Contacting AI workspace nodes...');
 
-  const structuralSystemBlueprintPrompt = `
-    You are an expert Frontend Component Code Generator. Return valid JSON only, with no markdown fences.
-    The JSON object must use this exact shape:
-    {
-      "html": "complete HTML body markup for the component",
-      "css": "complete CSS rules for the component",
-      "js": "plain browser JavaScript for the component",
-      "explanation": "short explanation of how the code works"
-    }
-
-    Requirements:
-    - Current workspace panel: ${lang.toUpperCase()}.
-    - User request: ${rawPrompt}.
-    - Format option: ${formatOpt}.
-    - Output depth option: ${depthOpt}.
-    - Always include useful code for all three fields: html, css, and js.
-    - The three code fields must work together in one browser iframe.
-    - Do not include import statements, export statements, markdown, or prose outside JSON.
-  `;
+  const systemPrompt = `You are an expert Frontend Component Code Generator. Return ONLY valid JSON with no markdown fences, no explanations, nothing else.
+JSON must be exactly this structure:
+{"html":"...HTML markup...","css":"...CSS rules...","js":"...JavaScript...","explanation":"...brief explanation..."}
+User request: ${rawPrompt}
+Generate working code for all three fields that works together in a browser iframe.`;
 
   try {
-    let apiServerResponse;
+    let apiResponse;
     try {
-      apiServerResponse = await fetch('/api/generate', {
+      apiResponse = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey ? {
-            Authorization: `Bearer ${apiKey}`,
-            'x-openrouter-key': apiKey
-          } : {})
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}`, 'x-openrouter-key': apiKey } : {})
         },
         body: JSON.stringify({
-          systemPrompt: structuralSystemBlueprintPrompt,
-          userMessage: `Generate a polished ${lang.toUpperCase()} focused frontend component from this request: ${rawPrompt}`
+          systemPrompt: systemPrompt,
+          userMessage: `Generate ${lang.toUpperCase()} component`
         })
       });
     } catch (_networkError) {
-      throw new Error('Cannot reach the WOWERS API server. Run npm start and open http://localhost:3000 instead of opening index.html directly.');
+      throw new Error('Cannot reach the WOWERS API server. Run npm start and open http://localhost:3000.');
     }
 
-    const operationalDataResult = await readApiResponse(apiServerResponse);
-
-    if(!apiServerResponse.ok) {
-      throw new Error(getApiErrorMessage(apiServerResponse, operationalDataResult));
-    }
-
-    const cleanContentString = extractTextPayload(operationalDataResult).trim();
-    const structuralCodeMatrix = normalizeGeneratedCode(parseGeneratedJson(cleanContentString), lang);
-    applyGeneratedCode(structuralCodeMatrix, lang);
-    switchOutputTab(lang, 'code');
-    showGlobalToast('AI Component assets compiled successfully!');
-  } catch (error) {
-    console.error('AI Generation processing fault details: ', error);
-    console.error('Raw error info:', {
-      message: error.message,
-      stack: error.stack
+    const responseData = await apiResponse.json().catch(async () => {
+      const text = await apiResponse.text();
+      return { error: 'Invalid JSON response', rawText: text };
     });
-    
-    const fallbackTemplate = findStarterTemplate(lang, rawPrompt);
-    if(fallbackTemplate) {
-      applyGeneratedCode(fallbackTemplate, lang);
-      switchOutputTab(lang, 'code');
-      showGlobalToast('⚠️ AI response was malformed. Loaded matching template instead.');
-    } else {
-      showGlobalToast('❌ Error: ' + (error.message || 'Unknown error'));
+
+    if(!apiResponse.ok) {
+      throw new Error(responseData.error || `API error ${apiResponse.status}`);
     }
+
+    const rawText = extractTextPayload(responseData).trim();
     
-    // Show a more helpful error message
-    const userMessage = error.message.includes('malformed') 
-      ? 'The AI response was incomplete or corrupted. Try again or check your API key.'
-      : error.message || 'AI compilation failed. Please try again.';
+    if (!rawText || rawText.length < 50) {
+      throw new Error('API returned incomplete response (too short). Check API limits or try again.');
+    }
+
+    const codeData = parseGeneratedJson(rawText);
+    applyGeneratedCode(codeData, lang);
+    switchOutputTab(lang, 'code');
+    showGlobalToast('✅ AI Component compiled!');
+
+  } catch (error) {
+    console.error('Generation error:', error.message);
     
-    alert(userMessage);
+    const template = findStarterTemplate(lang, rawPrompt);
+    if(template) {
+      applyGeneratedCode(template, lang);
+      switchOutputTab(lang, 'code');
+      showGlobalToast('⚠️ Used template (API issue)');
+      alert('API issue: ' + error.message + '\n\nLoaded a matching template instead. Try:\n• Using a shorter prompt\n• Checking your API key\n• Waiting a moment before retrying');
+    } else {
+      showGlobalToast('❌ Error');
+      alert('Error: ' + error.message);
+    }
   } finally {
     setGeneratingState(lang, false);
   }
@@ -304,13 +283,12 @@ function findStarterTemplate(lang, sentence) {
 }
 
 function applyGeneratedCode(codeMatrix, activeLang) {
-  const normalizedMatrix = normalizeGeneratedCode(codeMatrix, activeLang);
+  const normalized = normalizeGeneratedCode(codeMatrix, activeLang);
   ['html', 'css', 'js'].forEach(lang => {
-    const nextCode = normalizedMatrix[lang];
-    if(typeof nextCode === 'string') {
-      appState[lang].activeCode = nextCode;
+    if(typeof normalized[lang] === 'string') {
+      appState[lang].activeCode = normalized[lang];
       const editor = document.getElementById(`${lang}-preview-editor`);
-      if(editor) editor.value = nextCode;
+      if(editor) editor.value = normalized[lang];
     }
   });
 
@@ -325,10 +303,10 @@ function applyGeneratedCode(codeMatrix, activeLang) {
       codeTarget.style.display = 'block';
       codeTarget.textContent = appState[panelLang].activeCode || '';
     }
-    if(explanationContainer && normalizedMatrix.explanation) {
+    if(explanationContainer && normalized.explanation) {
       explanationContainer.replaceChildren();
       const explanationParagraph = document.createElement('p');
-      explanationParagraph.textContent = normalizedMatrix.explanation;
+      explanationParagraph.textContent = normalized.explanation;
       explanationContainer.appendChild(explanationParagraph);
     }
   });
@@ -344,7 +322,7 @@ function normalizeGeneratedCode(rawMatrix, requestedLang) {
     html: stringifyCode(matrix.html) || (requestedLang === 'html' ? fallbackCode : appState.html.activeCode),
     css: stringifyCode(matrix.css) || (requestedLang === 'css' ? fallbackCode : appState.css.activeCode),
     js: stringifyCode(matrix.js || matrix.javascript) || (requestedLang === 'js' ? fallbackCode : appState.js.activeCode),
-    explanation: stringifyCode(matrix.explanation || matrix.notes || matrix.description) || 'Generated code is ready to edit and preview.'
+    explanation: stringifyCode(matrix.explanation || matrix.notes || matrix.description) || 'Generated code is ready.'
   };
 }
 
@@ -355,102 +333,85 @@ function stringifyCode(value) {
   return '';
 }
 
-async function readApiResponse(response) {
-  const rawText = await response.text().catch(() => '');
-  if(!rawText) return {};
-
-  try {
-    return JSON.parse(rawText);
-  } catch (_parseError) {
-    return { error: rawText, rawText };
-  }
-}
-
-function getApiErrorMessage(response, apiResponse) {
-  const rawError = stringifyCode(apiResponse?.error || apiResponse?.message || apiResponse?.rawText).trim();
-  if(response.status === 404) {
-    return 'WOWERS API route /api/generate was not found. Run npm start and open http://localhost:3000 so the backend proxy is available.';
-  }
-
-  if(rawError) {
-    const compactError = rawError.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    return compactError || `API request failed with HTTP ${response.status}.`;
-  }
-
-  return `API request failed with HTTP ${response.status}. Check the server console for details.`;
-}
-
 function extractTextPayload(apiResponse) {
   const content = apiResponse?.content;
   if (Array.isArray(content)) {
-    return content
-      .map(item => (typeof item === 'string' ? item : item?.text || ''))
-      .join('');
+    return content.map(item => (typeof item === 'string' ? item : item?.text || '')).join('');
   }
-
   if (typeof apiResponse?.text === 'string') return apiResponse.text;
   if (typeof apiResponse?.content === 'string') return apiResponse.content;
   return '';
 }
 
 function parseGeneratedJson(rawText) {
-  if (!rawText) throw new Error('AI returned an empty response.');
+  if (!rawText || rawText.length < 20) {
+    throw new Error('Response too short to contain valid JSON');
+  }
 
-  // Remove markdown code fences
-  const withoutFence = rawText
+  // Remove markdown fences
+  let cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
 
-  // First attempt: parse as-is
+  // Try direct parse
   try {
-    return JSON.parse(withoutFence);
+    return JSON.parse(cleaned);
   } catch (e1) {
-    // Second attempt: find and extract JSON object
-    const firstBrace = withoutFence.indexOf('{');
-    const lastBrace = withoutFence.lastIndexOf('}');
-    
+    // Try extracting JSON from between braces
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+
     if (firstBrace >= 0 && lastBrace > firstBrace) {
-      const extractedJson = withoutFence.slice(firstBrace, lastBrace + 1);
+      const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
+      
       try {
-        return JSON.parse(extractedJson);
+        return JSON.parse(jsonStr);
       } catch (e2) {
-        // Third attempt: try to fix common JSON issues
-        const fixedJson = fixMalformedJson(extractedJson);
+        // Try to fix common issues
+        const fixed = fixMalformedJson(jsonStr);
         try {
-          return JSON.parse(fixedJson);
+          return JSON.parse(fixed);
         } catch (e3) {
-          console.error('JSON Parse Attempts Failed:', {
+          console.error('JSON parsing failed after 3 attempts:', {
             original: e1.message,
             extracted: e2.message,
             fixed: e3.message,
-            textPreview: extractedJson.slice(0, 200)
+            responseLength: rawText.length,
+            preview: rawText.slice(0, 300)
           });
-          throw new Error(`AI returned malformed JSON: ${e1.message}. This may indicate the response was incomplete or corrupted.`);
+          throw new Error('Response JSON is too malformed (incomplete strings, unescaped newlines, etc.)');
         }
       }
     }
-    
-    throw new Error('AI response was not valid JSON and could not extract a valid JSON object.');
+
+    console.error('Could not find JSON braces in response:', rawText.slice(0, 200));
+    throw new Error('Response does not contain valid JSON structure');
   }
 }
 
-// Helper function to fix common JSON formatting issues
-function fixMalformedJson(jsonStr) {
-  let fixed = jsonStr;
-
+function fixMalformedJson(str) {
+  let fixed = str;
+  
+  // Remove control characters
+  fixed = fixed.replace(/[\x00-\x1F\x7F]/g, ' ');
+  
   // Fix unescaped newlines in strings
-  fixed = fixed.replace(/([^\\])\n(?=[^"]*")/g, '$1\\n');
-
-  // Fix single quotes that should be double quotes
+  fixed = fixed.replace(/:\s*"([^"]*)\n([^"]*)"/g, ': "$1\\n$2"');
+  
+  // Fix single quotes
   fixed = fixed.replace(/:\s*'([^']*)'/g, ': "$1"');
-
-  // Fix trailing commas before closing braces/brackets
+  
+  // Fix trailing commas
   fixed = fixed.replace(/,\s*([}\]])/g, '$1');
-
-  // Fix missing commas between properties
-  fixed = fixed.replace(/"\s*\n\s*"/g, '", "');
-
+  
+  // Add missing closing braces if needed
+  const openBraces = (fixed.match(/{/g) || []).length;
+  const closeBraces = (fixed.match(/}/g) || []).length;
+  if (openBraces > closeBraces) {
+    fixed += '}';
+  }
+  
   return fixed;
 }
 
@@ -492,18 +453,16 @@ function buildSandboxDoc(liveHtml, liveCss, liveJs) {
 }
 
 function syncRuntimeSandbox(lang) {
-  // Find the ACTIVE panel to read from its editors only
   const activePanel = document.querySelector('.panel.active');
   if (!activePanel) return;
 
-  // Read from editors in the active panel only
   const htmlEditor = activePanel.querySelector('#html-preview-editor');
   const cssEditor = activePanel.querySelector('#css-preview-editor');
   const jsEditor = activePanel.querySelector('#js-preview-editor');
 
-  const liveHtml = htmlEditor ? htmlEditor.value : appState.html.activeCode;
-  const liveCss = cssEditor ? cssEditor.value : appState.css.activeCode;
-  const liveJs = jsEditor ? jsEditor.value : appState.js.activeCode;
+  const liveHtml = htmlEditor?.value || appState.html.activeCode;
+  const liveCss = cssEditor?.value || appState.css.activeCode;
+  const liveJs = jsEditor?.value || appState.js.activeCode;
 
   appState.html.activeCode = liveHtml;
   appState.css.activeCode = liveCss;
@@ -511,7 +470,6 @@ function syncRuntimeSandbox(lang) {
 
   const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
 
-  // Update ALL sandbox iframes with the current code (they all render the same thing)
   const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
   if(sidebarFrame) sidebarFrame.srcdoc = doc;
 
@@ -531,15 +489,15 @@ function setGeneratingState(lang, isGenerating) {
 
 function copyWorkspaceOutput(lang) {
   const editorElement = document.getElementById(`${lang}-preview-editor`);
-  const liveContent = editorElement ? editorElement.value : appState[lang].activeCode;
+  const liveContent = editorElement?.value || appState[lang].activeCode;
   navigator.clipboard.writeText(liveContent || '').then(() => {
-    showGlobalToast('Copied code context payload cleanly!');
+    showGlobalToast('📋 Copied!');
   });
 }
 
 function downloadWorkspaceOutput(lang, extension) {
   const editorElement = document.getElementById(`${lang}-preview-editor`);
-  const liveContent = editorElement ? editorElement.value : appState[lang].activeCode;
+  const liveContent = editorElement?.value || appState[lang].activeCode;
   if(!liveContent) return;
   const dataBlob = new Blob([liveContent], { type: 'text/plain;charset=utf-8' });
   const downloadAnchor = document.createElement('a');
@@ -559,4 +517,4 @@ function showGlobalToast(msg) {
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
-                                           }
+                                             }
