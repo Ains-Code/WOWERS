@@ -353,9 +353,7 @@ body {
   font-size: 12px;
 }
 
-/* =======================================================
-   ANIMATED SPINNING LIGHT LOGIN BORDER 
-   ======================================================= */
+/* ANIMATED SPINNING LIGHT LOGIN BORDER */
 #auth-overlay {
   position: fixed;
   inset: 0;
@@ -377,20 +375,18 @@ body.auth-mode #main-application-container {
   display: none;
 }
 
-/* Login Panel wrapped inside a spinning light frame track */
 .auth-card {
   width: min(460px, 90vw);
   background: rgba(6, 5, 15, 0.95);
   padding: 40px;
   margin: auto;
   position: relative;
-  overflow: hidden; /* Clips the background rotation trace */
+  overflow: hidden;
   border-radius: 12px;
   box-shadow: 0 0 50px rgba(0, 229, 255, 0.15);
   z-index: 1;
 }
 
-/* The actual running light gradient element */
 .auth-card::before {
   content: '';
   position: absolute;
@@ -412,12 +408,11 @@ body.auth-mode #main-application-container {
   animation: rotate-light-border 5s linear infinite;
 }
 
-/* The dark content-mask leaving only a razor-thin neon track visible */
 .auth-card::after {
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 2px; /* Border weight */
+  inset: 2px;
   background: rgba(12, 11, 26, 0.98);
   border-radius: 10px;
 }
@@ -549,4 +544,4 @@ body.auth-mode #main-application-container {
 @keyframes glitch-anim-text {
   0% { clip: rect(12px, 9999px, 66px, 0); }
   100% { clip: rect(84px, 9999px, 120px, 0); }
-   }
+  }
