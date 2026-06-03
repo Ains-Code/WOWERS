@@ -3,38 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web Helper - Workspace</title>
+  <title>WOWERS — AI Web Design Workspace</title>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Glitch-in-Space theme (replaces original style.css) -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-mode" id="app-body">
 
+  <!-- ── Starfield canvas (z-index 0, fixed, pointer-events:none) ── -->
+  <canvas id="space-canvas"></canvas>
+
+  <!-- ── CRT scanline overlay ── -->
+  <div class="scanline-overlay"></div>
+  <div class="scanline-beam"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       AUTH / LOGIN OVERLAY — GLITCH-IN-SPACE
+  ═══════════════════════════════════════════════════════════ -->
   <div class="hero-section" id="hero-banner">
-    <div class="hero-left">
-      <h1>WEB HELPER</h1>
-      <p class="intro-subtitle">
-        An AI-powered development environment to seamlessly generate, style, and preview web layout templates.
-      </p>
-      <div class="api-key-container">
-        <label for="apikey-input" class="input-label">Connect OpenRouter Engine</label>
-        <input id="apikey-input" type="password" placeholder="Enter your API token keys...">
-        <button onclick="saveApiKey()">ENTER KEY</button>
+    <div class="auth-panel">
+      <div class="auth-corner-bl"></div>
+
+      <div class="auth-logo">
+        <div class="auth-logo-mark">W</div>
+        <div class="auth-logo-text">WOWERS</div>
       </div>
-    </div>
-    <div class="hero-right">
-      <h2>Design Workspace</h2>
+
+      <p class="auth-tagline">// AI Web Design Workspace</p>
+      <p class="auth-headline">CONNECT OPENROUTER ENGINE</p>
+
+      <label class="auth-label" for="apikey-input">API Token Key</label>
+      <div class="auth-input-wrap">
+        <input id="apikey-input" type="password" placeholder="sk-or-v1-···············">
+        <i class="fa-solid fa-key auth-input-icon"></i>
+      </div>
+
+      <button class="auth-btn" onclick="saveApiKey()">
+        INITIALIZE WORKSPACE
+      </button>
+
+      <div class="auth-divider">
+        <span></span><em>// OR</em><span></span>
+      </div>
+
+      <p class="auth-server-note">
+        If <em>OPENROUTER_KEY</em> is set in server environment,<br>
+        workspace unlocks automatically on load.
+      </p>
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN WORKSPACE
+  ═══════════════════════════════════════════════════════════ -->
   <div class="workspace-wrapper" id="main-workspace">
 
+    <!-- ── TOP NAVBAR ── -->
     <header class="top-navbar">
       <div class="navbar-logo">
-        <div class="logo-icon">
-          <span>S</span><span class="logo-slash">/</span><span>f</span>
-        </div>
+        <div class="logo-icon">S<span style="color:rgba(0,245,255,0.4);font-size:9px">/</span>f</div>
       </div>
       <nav class="navbar-tabs">
         <button class="nav-tab css-nav active" onclick="switchMainTab('css')">
@@ -48,34 +82,50 @@
         </button>
       </nav>
       <div class="navbar-actions">
-        <button class="nav-action-btn" onclick="copyWorkspaceOutput(getActiveTab())"><i class="fa-regular fa-copy"></i> <span>Copy</span></button>
-        <button class="nav-action-btn download" onclick="downloadWorkspaceOutput(getActiveTab(), getActiveTab())"><i class="fa-solid fa-download"></i> <span>Download</span></button>
+        <button class="nav-action-btn" onclick="copyWorkspaceOutput(getActiveTab())">
+          <i class="fa-regular fa-copy"></i> Copy
+        </button>
+        <button class="nav-action-btn download" onclick="downloadWorkspaceOutput(getActiveTab(), getActiveTab())">
+          <i class="fa-solid fa-download"></i> Download
+        </button>
       </div>
     </header>
 
     <main class="panels-area">
 
-      <!-- ===== CSS PANEL ===== -->
+      <!-- ═══════ CSS PANEL ═══════ -->
       <div class="panel active" id="css-panel">
         <div class="workspace-split">
 
-          <!-- LEFT SIDEBAR: controls + live preview below generate -->
           <aside class="left-sidebar">
-            <div class="sidebar-heading"><span class="heading-dot css-dot"></span>DESCRIBE YOUR STYLES</div>
-
-            <!-- Controls (templates + describe + generate) -->
+            <div class="sidebar-heading">
+              <span class="heading-dot css-dot"></span>DESCRIBE YOUR STYLES
+            </div>
             <div class="sidebar-controls">
+
               <div class="quick-templates-section">
-                <div class="section-label">QUICK TEMPLATES</div>
-                <div class="templates-grid">
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Dark card component with neon glow shadow')">Dark card</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Gradient hero banner canvas theme layout')">Hero banner</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Animated bounce button hover effect')">Button hover</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Glassmorphism dark frosted UI panel')">Glassmorphism</button>
+                <div class="section-label">
+                  <i class="fa-solid fa-bolt"></i> QUICK TEMPLATES
+                </div>
+                <div class="templates-scroll-track">
+                  <!-- Duplicated set = seamless 50%-translate infinite loop -->
+                  <div class="templates-grid" id="css-templates-grid">
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Dark card component with neon glow shadow')">Dark card</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Gradient hero banner canvas theme layout')">Hero banner</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Animated bounce button hover effect')">Button hover</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Glassmorphism dark frosted UI panel')">Glassmorphism</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Dark card component with neon glow shadow')">Dark card</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Gradient hero banner canvas theme layout')">Hero banner</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Animated bounce button hover effect')">Button hover</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('css','Glassmorphism dark frosted UI panel')">Glassmorphism</button>
+                  </div>
                 </div>
               </div>
+
               <div class="describe-section">
-                <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe layout requirements</div>
+                <div class="section-label">
+                  <i class="fa-solid fa-pen-to-square"></i> Describe layout requirements
+                </div>
                 <textarea class="describe-input" id="css-prompt-input" placeholder="Type structural layout directions..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="css-format-select" onchange="triggerLiveAiGeneration()">
@@ -88,27 +138,34 @@
                   </select>
                 </div>
                 <button class="generate-btn" onclick="generateAiCode('css')">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> GENERATE WITH AI
                 </button>
               </div>
-            </div>
 
-            <!-- LIVE PREVIEW — below generate button (desktop only, hidden mobile) -->
+            </div><!-- /.sidebar-controls -->
+
             <div class="sidebar-preview">
               <div class="pane-bar"><span>LIVE PREVIEW</span></div>
               <iframe id="css-sandbox-frame"></iframe>
             </div>
           </aside>
 
-          <!-- CENTER: Code output + mobile preview tab -->
           <div class="center-output">
             <div class="output-topbar">
               <div class="output-tab-group">
-                <button class="out-tab active" id="css-btn-code" onclick="switchOutputTab('css', 'code')">Code</button>
-                <button class="out-tab" id="css-btn-preview" onclick="switchOutputTab('css', 'preview')">Editor</button>
+                <button class="out-tab active" id="css-btn-code"    onclick="switchOutputTab('css','code')">Code</button>
+                <button class="out-tab"         id="css-btn-preview" onclick="switchOutputTab('css','preview')">Editor</button>
+              </div>
+              <div class="newtab-actions">
+                <button class="newtab-btn" onclick="openCodeInNewTab('css')">
+                  <i class="fa-solid fa-code"></i> CODE EDITOR
+                </button>
+                <button class="newtab-btn preview-btn" onclick="openPreviewInNewTab()">
+                  <i class="fa-solid fa-eye"></i> LIVE PREVIEW
+                </button>
               </div>
             </div>
-            <!-- Code view -->
+
             <div class="output-pane active" id="css-pane-code">
               <div class="code-wrap">
                 <div class="empty-state" id="css-empty-view">
@@ -118,7 +175,7 @@
                 <pre id="css-code-target" style="display:none;"></pre>
               </div>
             </div>
-            <!-- Editor view (code editor + preview for mobile/tablet) -->
+
             <div class="output-pane" id="css-pane-preview">
               <div class="preview-wrap">
                 <div class="preview-panel-box">
@@ -131,34 +188,43 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div><!-- /.center-output -->
 
-          <!-- RIGHT: Explanation -->
           <aside class="right-explanation">
-            <div class="explanation-title">EXPLANATION</div>
+            <div class="explanation-title">// EXPLANATION</div>
             <div class="explain-content" id="css-explanation-box">
-              <p class="explain-hint">Every generate have explanation</p>
+              <p class="explain-hint">Every generate produces an explanation.</p>
             </div>
           </aside>
 
         </div>
-      </div>
+      </div><!-- /#css-panel -->
 
-      <!-- ===== JS PANEL ===== -->
+
+      <!-- ═══════ JS PANEL ═══════ -->
       <div class="panel" id="js-panel">
         <div class="workspace-split">
 
           <aside class="left-sidebar">
-            <div class="sidebar-heading"><span class="heading-dot js-dot"></span>DESCRIBE YOUR RUNTIME</div>
+            <div class="sidebar-heading">
+              <span class="heading-dot js-dot"></span>DESCRIBE YOUR RUNTIME
+            </div>
             <div class="sidebar-controls">
+
               <div class="quick-templates-section">
-                <div class="section-label">QUICK TEMPLATES</div>
-                <div class="templates-grid">
-                  <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Smooth scroll reveal behavior matrix')">Smooth scroll</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Toggle active light and dark body mode')">Dark mode</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('js', 'Interactive modal display framework helper')">Modal trigger</button>
+                <div class="section-label"><i class="fa-solid fa-bolt"></i> QUICK TEMPLATES</div>
+                <div class="templates-scroll-track">
+                  <div class="templates-grid" id="js-templates-grid">
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Smooth scroll reveal behavior matrix')">Smooth scroll</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Toggle active light and dark body mode')">Dark mode</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Interactive modal display framework helper')">Modal trigger</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Smooth scroll reveal behavior matrix')">Smooth scroll</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Toggle active light and dark body mode')">Dark mode</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('js','Interactive modal display framework helper')">Modal trigger</button>
+                  </div>
                 </div>
               </div>
+
               <div class="describe-section">
                 <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe runtime script logic</div>
                 <textarea class="describe-input" id="js-prompt-input" placeholder="Type functional script instructions..."></textarea>
@@ -173,10 +239,12 @@
                   </select>
                 </div>
                 <button class="generate-btn" onclick="generateAiCode('js')">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> GENERATE WITH AI
                 </button>
               </div>
-            </div>
+
+            </div><!-- /.sidebar-controls -->
+
             <div class="sidebar-preview">
               <div class="pane-bar"><span>LIVE PREVIEW</span></div>
               <iframe id="js-sandbox-frame"></iframe>
@@ -186,10 +254,19 @@
           <div class="center-output">
             <div class="output-topbar">
               <div class="output-tab-group">
-                <button class="out-tab active" id="js-btn-code" onclick="switchOutputTab('js', 'code')">Code</button>
-                <button class="out-tab" id="js-btn-preview" onclick="switchOutputTab('js', 'preview')">Editor</button>
+                <button class="out-tab active" id="js-btn-code"    onclick="switchOutputTab('js','code')">Code</button>
+                <button class="out-tab"         id="js-btn-preview" onclick="switchOutputTab('js','preview')">Editor</button>
+              </div>
+              <div class="newtab-actions">
+                <button class="newtab-btn" onclick="openCodeInNewTab('js')">
+                  <i class="fa-solid fa-code"></i> CODE EDITOR
+                </button>
+                <button class="newtab-btn preview-btn" onclick="openPreviewInNewTab()">
+                  <i class="fa-solid fa-eye"></i> LIVE PREVIEW
+                </button>
               </div>
             </div>
+
             <div class="output-pane active" id="js-pane-code">
               <div class="code-wrap">
                 <div class="empty-state" id="js-empty-view">
@@ -199,6 +276,7 @@
                 <pre id="js-code-target" style="display:none;"></pre>
               </div>
             </div>
+
             <div class="output-pane" id="js-pane-preview">
               <div class="preview-wrap">
                 <div class="preview-panel-box">
@@ -211,33 +289,43 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div><!-- /.center-output -->
 
           <aside class="right-explanation">
-            <div class="explanation-title">EXPLANATION</div>
+            <div class="explanation-title">// EXPLANATION</div>
             <div class="explain-content" id="js-explanation-box">
-              <p class="explain-hint">Every generate have explanation</p>
+              <p class="explain-hint">Every generate produces an explanation.</p>
             </div>
           </aside>
 
         </div>
-      </div>
+      </div><!-- /#js-panel -->
 
-      <!-- ===== HTML PANEL ===== -->
+
+      <!-- ═══════ HTML PANEL ═══════ -->
       <div class="panel" id="html-panel">
         <div class="workspace-split">
 
           <aside class="left-sidebar">
-            <div class="sidebar-heading"><span class="heading-dot html-dot"></span>DESCRIBE YOUR DOM</div>
+            <div class="sidebar-heading">
+              <span class="heading-dot html-dot"></span>DESCRIBE YOUR DOM
+            </div>
             <div class="sidebar-controls">
+
               <div class="quick-templates-section">
-                <div class="section-label">QUICK TEMPLATES</div>
-                <div class="templates-grid">
-                  <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Hero section canvas with bold layout headings')">Hero Section</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Clean contact input form dashboard box')">Contact Form</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('html', 'Responsive 3 column grid price comparison metrics')">Pricing Grid</button>
+                <div class="section-label"><i class="fa-solid fa-bolt"></i> QUICK TEMPLATES</div>
+                <div class="templates-scroll-track">
+                  <div class="templates-grid" id="html-templates-grid">
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Hero section canvas with bold layout headings')">Hero Section</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Clean contact input form dashboard box')">Contact Form</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Responsive 3 column grid price comparison metrics')">Pricing Grid</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Hero section canvas with bold layout headings')">Hero Section</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Clean contact input form dashboard box')">Contact Form</button>
+                    <button class="tpl-btn" onclick="setTemplatePrompt('html','Responsive 3 column grid price comparison metrics')">Pricing Grid</button>
+                  </div>
                 </div>
               </div>
+
               <div class="describe-section">
                 <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe custom element goals</div>
                 <textarea class="describe-input" id="html-prompt-input" placeholder="Type document node directives..."></textarea>
@@ -252,10 +340,12 @@
                   </select>
                 </div>
                 <button class="generate-btn" onclick="generateAiCode('html')">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> GENERATE WITH AI
                 </button>
               </div>
-            </div>
+
+            </div><!-- /.sidebar-controls -->
+
             <div class="sidebar-preview">
               <div class="pane-bar"><span>LIVE PREVIEW</span></div>
               <iframe id="html-sandbox-frame"></iframe>
@@ -265,10 +355,19 @@
           <div class="center-output">
             <div class="output-topbar">
               <div class="output-tab-group">
-                <button class="out-tab active" id="html-btn-code" onclick="switchOutputTab('html', 'code')">Code</button>
-                <button class="out-tab" id="html-btn-preview" onclick="switchOutputTab('html', 'preview')">Editor</button>
+                <button class="out-tab active" id="html-btn-code"    onclick="switchOutputTab('html','code')">Code</button>
+                <button class="out-tab"         id="html-btn-preview" onclick="switchOutputTab('html','preview')">Editor</button>
+              </div>
+              <div class="newtab-actions">
+                <button class="newtab-btn" onclick="openCodeInNewTab('html')">
+                  <i class="fa-solid fa-code"></i> CODE EDITOR
+                </button>
+                <button class="newtab-btn preview-btn" onclick="openPreviewInNewTab()">
+                  <i class="fa-solid fa-eye"></i> LIVE PREVIEW
+                </button>
               </div>
             </div>
+
             <div class="output-pane active" id="html-pane-code">
               <div class="code-wrap">
                 <div class="empty-state" id="html-empty-view">
@@ -278,6 +377,7 @@
                 <pre id="html-code-target" style="display:none;"></pre>
               </div>
             </div>
+
             <div class="output-pane" id="html-pane-preview">
               <div class="preview-wrap">
                 <div class="preview-panel-box">
@@ -290,32 +390,33 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div><!-- /.center-output -->
 
           <aside class="right-explanation">
-            <div class="explanation-title">EXPLANATION</div>
+            <div class="explanation-title">// EXPLANATION</div>
             <div class="explain-content" id="html-explanation-box">
-              <p class="explain-hint">Every generate have explanation</p>
+              <p class="explain-hint">Every generate produces an explanation.</p>
             </div>
           </aside>
 
         </div>
-      </div>
+      </div><!-- /#html-panel -->
 
     </main>
-  </div>
+  </div><!-- /#main-workspace -->
 
+  <!-- ── Toast notification ── -->
   <div class="toast" id="global-toast">
-    <i class="fa-solid fa-circle-check"></i><span id="toast-text">Action completed!</span>
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toast-text">Action completed!</span>
   </div>
 
+  <!-- ── Scripts (order matters) ──
+       1. space.js   — starfield canvas + new-tab helpers (getActiveTab defined here)
+       2. script.js  — core app logic (may redefine getActiveTab, that's fine)
+  -->
+  <script src="space.js"></script>
   <script src="script.js"></script>
-  <script>
-    function getActiveTab() {
-      if (document.getElementById('css-panel').classList.contains('active')) return 'css';
-      if (document.getElementById('js-panel').classList.contains('active')) return 'js';
-      return 'html';
-    }
-  </script>
+
 </body>
-  </html>
+                  </html>
