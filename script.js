@@ -273,13 +273,26 @@ async function generateAiCode(lang) {
     showGlobalToast('AI Component assets compiled successfully!');
   } catch (error) {
     console.error('AI Generation processing fault details: ', error);
+    console.error('Raw error info:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
     const fallbackTemplate = findStarterTemplate(lang, rawPrompt);
     if(fallbackTemplate) {
       applyGeneratedCode(fallbackTemplate, lang);
       switchOutputTab(lang, 'code');
-      showGlobalToast('AI failed, so the matching template code was loaded.');
+      showGlobalToast('⚠️ AI response was malformed. Loaded matching template instead.');
+    } else {
+      showGlobalToast('❌ Error: ' + (error.message || 'Unknown error'));
     }
-    alert(error.message || 'AI compilation module error encountered. Please check your OpenRouter Key settings.');
+    
+    // Show a more helpful error message
+    const userMessage = error.message.includes('malformed') 
+      ? 'The AI response was incomplete or corrupted. Try again or check your API key.'
+      : error.message || 'AI compilation failed. Please try again.';
+    
+    alert(userMessage);
   } finally {
     setGeneratingState(lang, false);
   }
@@ -383,21 +396,62 @@ function extractTextPayload(apiResponse) {
 function parseGeneratedJson(rawText) {
   if (!rawText) throw new Error('AI returned an empty response.');
 
+  // Remove markdown code fences
   const withoutFence = rawText
     .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```$/i, '')
+    .replace(/```\s*$/i, '')
     .trim();
 
+  // First attempt: parse as-is
   try {
     return JSON.parse(withoutFence);
-  } catch (_initialError) {
+  } catch (e1) {
+    // Second attempt: find and extract JSON object
     const firstBrace = withoutFence.indexOf('{');
     const lastBrace = withoutFence.lastIndexOf('}');
+    
     if (firstBrace >= 0 && lastBrace > firstBrace) {
-      return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1));
+      const extractedJson = withoutFence.slice(firstBrace, lastBrace + 1);
+      try {
+        return JSON.parse(extractedJson);
+      } catch (e2) {
+        // Third attempt: try to fix common JSON issues
+        const fixedJson = fixMalformedJson(extractedJson);
+        try {
+          return JSON.parse(fixedJson);
+        } catch (e3) {
+          console.error('JSON Parse Attempts Failed:', {
+            original: e1.message,
+            extracted: e2.message,
+            fixed: e3.message,
+            textPreview: extractedJson.slice(0, 200)
+          });
+          throw new Error(`AI returned malformed JSON: ${e1.message}. This may indicate the response was incomplete or corrupted.`);
+        }
+      }
     }
-    throw new Error('AI response was not valid JSON.');
+    
+    throw new Error('AI response was not valid JSON and could not extract a valid JSON object.');
   }
+}
+
+// Helper function to fix common JSON formatting issues
+function fixMalformedJson(jsonStr) {
+  let fixed = jsonStr;
+
+  // Fix unescaped newlines in strings
+  fixed = fixed.replace(/([^\\])\n(?=[^"]*")/g, '$1\\n');
+
+  // Fix single quotes that should be double quotes
+  fixed = fixed.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+  // Fix trailing commas before closing braces/brackets
+  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+
+  // Fix missing commas between properties
+  fixed = fixed.replace(/"\s*\n\s*"/g, '", "');
+
+  return fixed;
 }
 
 function sanitizeRunnableScript(sourceCode) {
@@ -505,4 +559,4 @@ function showGlobalToast(msg) {
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
-      }
+                                           }
