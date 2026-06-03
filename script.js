@@ -25,38 +25,20 @@ const starterTemplates = [
   }
 ];
 
-// Ligtas na Selector Finder para maiwasan ang Crash errors
+// Ligtas na Selector Finder
 function getEl(idOrClass) {
   if (!idOrClass) return null;
   return document.getElementById(idOrClass) || document.querySelector(idOrClass) || document.querySelector(`.${idOrClass}`) || document.querySelector(`#${idOrClass}`);
 }
 
+// FORCE BYPASS LOOK: Awtomatikong pinapagana pagkabasa ng script
 window.addEventListener('DOMContentLoaded', () => {
-  // Global Interceptor para sa Login Buttons
-  document.addEventListener('click', (e) => {
-    const target = e.target.closest('button') || e.target;
-    if (target && (target.tagName === 'BUTTON' || target.type === 'submit')) {
-      const txt = (target.innerText || target.value || '').toLowerCase();
-      if (txt.includes('login') || txt.includes('enter') || txt.includes('pasok') || txt.includes('submit')) {
-        e.preventDefault();
-        saveApiKey();
-      }
-    }
-  });
-
-  // Global Interceptor para sa Enter Key sa kahit anong Password/API Input
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
-      e.preventDefault();
-      saveApiKey();
-    }
-  });
-
   initializeEditors();
-
-  if (sessionStorage.getItem('openrouter_key')) {
+  
+  // DIRETSONG FORCE UNLOCK - Nilaktawan na ang lahat ng click, submit, at key checks
+  setTimeout(() => {
     unlockWorkspace();
-  }
+  }, 50);
 });
 
 function initializeEditors() {
@@ -64,39 +46,38 @@ function initializeEditors() {
     appState[lang].activeCode = appState[lang].placeholderHtml;
     const editor = getEl(`${lang}-preview-editor`) || getEl(`${lang}-editor-textarea`) || getEl('editor-textarea');
     if (editor) editor.value = appState[lang].placeholderHtml;
-    localStorage.setItem(`wowers_cross_${lang}`, appState[lang].placeholderHtml);
+    try {
+      localStorage.setItem(`wowers_cross_${lang}`, appState[lang].placeholderHtml);
+    } catch(e) { console.warn("Storage restricted:", e); }
   });
 }
 
 function unlockWorkspace() {
-  // Tanggalin ang login overlays nang sabay-sabay nang hindi nasisira ang structural CSS tags
-  const overlays = ['#auth-overlay', '.hero-section', '.auth-stage', '.auth-wrapper'];
+  // 1. Piliting itago ang kahit anong uri ng overlay o login screen sa layout mo
+  const overlays = ['#auth-overlay', '.hero-section', '.auth-stage', '.auth-wrapper', '.login-screen'];
   overlays.forEach(sel => {
     const el = getEl(sel);
     if (el) el.style.setProperty('display', 'none', 'important');
   });
 
-  // Ipakita ang pangunahing workspace container kung ano man ang gamit nitong pangalan
-  const containers = ['#main-application-container', '.workspace-wrapper', '#app-body'];
+  // 2. Piliting ilabas ang iyong workspace containers nang walang kondisyon
+  const containers = ['#main-application-container', '.workspace-wrapper', '#app-body', '.app-container'];
   containers.forEach(sel => {
     const el = getEl(sel);
-    if (el) el.style.setProperty('display', el.tagName === 'BODY' ? 'block' : 'flex', 'important');
+    if (el) {
+      el.style.setProperty('display', el.tagName === 'BODY' ? 'block' : 'flex', 'important');
+      el.style.setProperty('visibility', 'visible', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+    }
   });
 
   document.body.classList.remove('auth-mode');
+  
+  // 3. I-sync ang mga codes sa sandbox structures
   syncAllSandboxes();
 }
 
-function saveApiKey() {
-  const input = getEl('apikey-input') || getEl('.auth-form-group input') || document.querySelector('input[type="password"]') || document.querySelector('input');
-  const val = input ? input.value.trim().replace(/^Bearer\s+/i, '') : '';
-  
-  sessionStorage.setItem('openrouter_key', val || 'dev_bypass_key');
-  showGlobalToast('Workspace grid link connected!');
-  unlockWorkspace();
-}
-
-// RESTORED & PROTECTED TAB NAVIGATION SYSTEM
+// WORKSPACE NAVIGATION ENGINE
 function switchMainTab(targetLang) {
   document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(pane => pane.classList.remove('active'));
@@ -164,7 +145,7 @@ function applyGeneratedCode(codeMatrix, activeLang) {
       appState[lang].activeCode = codeVal;
       const editor = getEl(`${lang}-preview-editor`) || getEl(`${lang}-editor-textarea`);
       if (editor) editor.value = codeVal;
-      localStorage.setItem(`wowers_cross_${lang}`, codeVal);
+      try { localStorage.setItem(`wowers_cross_${lang}`, codeVal); } catch(e){}
     }
   });
 
@@ -220,4 +201,4 @@ function getActiveTab() {
     if (activeTabBtn.classList.contains('js-nav') || activeTabBtn.textContent.includes('JS')) return 'js';
   }
   return 'html';
-}
+        }
