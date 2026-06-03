@@ -105,6 +105,7 @@ app.post('/api/generate', async (req, res) => {
     let data = await readOpenRouterBody(response);
 
     if (!response.ok && shouldRetryWithoutJsonMode(response.status, data)) {
+      console.log('Retrying without JSON mode due to response format error');
       const fallbackPayload = { ...requestPayload };
       delete fallbackPayload.response_format;
       response = await fetch(OPENROUTER_URL, {
@@ -119,25 +120,59 @@ app.post('/api/generate', async (req, res) => {
     if (timeout) clearTimeout(timeout);
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: getOpenRouterErrorMessage(data) });
+      const errorMsg = getOpenRouterErrorMessage(data);
+      console.error('OpenRouter API Error:', {
+        status: response.status,
+        error: errorMsg,
+        rawData: data
+      });
+      return res.status(response.status).json({ error: errorMsg });
     }
 
     const rawOutput = data?.choices?.[0]?.message?.content;
-    const textOutput = Array.isArray(rawOutput)
-      ? rawOutput.map(item => (typeof item === 'string' ? item : item?.text || '')).join('')
-      : rawOutput;
+    
+    // Handle both string and array responses
+    let textOutput = '';
+    if (typeof rawOutput === 'string') {
+      textOutput = rawOutput;
+    } else if (Array.isArray(rawOutput)) {
+      textOutput = rawOutput
+        .map(item => (typeof item === 'string' ? item : item?.text || ''))
+        .join('');
+    }
 
     if (typeof textOutput !== 'string' || !textOutput.trim()) {
+      console.error('Empty OpenRouter response:', data);
       return res.status(502).json({ error: 'OpenRouter returned an empty response.' });
     }
 
-    res.json({ content: [{ type: 'text', text: textOutput }] });
+    // Validate JSON response before sending
+    try {
+      // Try to parse to ensure it's valid JSON
+      JSON.parse(textOutput.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '').trim());
+    } catch (parseErr) {
+      console.warn('OpenRouter response is not valid JSON:', {
+        error: parseErr.message,
+        responseLength: textOutput.length,
+        preview: textOutput.slice(0, 200)
+      });
+      // Still send it, let the client handle the error
+    }
+
+    res.json({ 
+      content: [{ 
+        type: 'text', 
+        text: textOutput 
+      }] 
+    });
   } catch (error) {
     if (timeout) clearTimeout(timeout);
     const isAbort = error?.name === 'AbortError';
     console.error('API Proxy Error:', error);
     res.status(isAbort ? 504 : 500).json({
-      error: isAbort ? 'OpenRouter request timed out.' : error.message || 'Failed to communicate with AI.'
+      error: isAbort 
+        ? 'OpenRouter request timed out (45 seconds). Try a shorter prompt or check API status.' 
+        : error.message || 'Failed to communicate with AI.'
     });
   }
 });
