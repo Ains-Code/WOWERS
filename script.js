@@ -94,7 +94,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const storedApiKey = sessionStorage.getItem('openrouter_key');
   if (storedApiKey) {
-    if(document.getElementById('apikey-input')) document.getElementById('apikey-input').value = storedApiKey;
+    if (document.getElementById('apikey-input')) document.getElementById('apikey-input').value = storedApiKey;
     unlockWorkspace();
     return;
   }
@@ -102,7 +102,7 @@ window.addEventListener('DOMContentLoaded', () => {
   fetch('/api/config')
     .then(response => response.ok ? response.json() : null)
     .then(config => {
-      if(config?.hasServerKey) unlockWorkspace();
+      if (config?.hasServerKey) unlockWorkspace();
     })
     .catch(() => {});
 });
@@ -111,7 +111,7 @@ function initializeEditors() {
   ['html', 'css', 'js'].forEach(lang => {
     appState[lang].activeCode = appState[lang].placeholderHtml;
     const editor = document.getElementById(`${lang}-preview-editor`);
-    if(editor) editor.value = appState[lang].placeholderHtml;
+    if (editor) editor.value = appState[lang].placeholderHtml;
   });
 }
 
@@ -120,13 +120,13 @@ function normalizeOpenRouterKey(value) {
 }
 
 function unlockWorkspace() {
-  if(document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
+  if (document.getElementById('app-body')) document.getElementById('app-body').classList.remove('auth-mode');
   syncAllSandboxes();
 }
 
 function saveApiKey() {
   const keyInput = document.getElementById('apikey-input');
-  if(!keyInput) return;
+  if (!keyInput) return;
   const keyVal = normalizeOpenRouterKey(keyInput.value);
   if (keyVal) {
     sessionStorage.setItem('openrouter_key', keyVal);
@@ -144,43 +144,43 @@ function switchMainTab(targetLang) {
   const targetTab = document.querySelector(`.${targetLang}-nav`);
   const targetPanel = document.getElementById(`${targetLang}-panel`);
 
-  if(targetTab) targetTab.classList.add('active');
-  if(targetPanel) targetPanel.classList.add('active');
+  if (targetTab) targetTab.classList.add('active');
+  if (targetPanel) targetPanel.classList.add('active');
   syncRuntimeSandbox(targetLang);
 }
 
 function switchOutputTab(lang, viewMode) {
   const targetPanel = document.getElementById(`${lang}-panel`);
-  if(!targetPanel) return;
+  if (!targetPanel) return;
 
-  const btnCode = targetPanel.querySelector('#' + lang + '-btn-code');
+  const btnCode    = targetPanel.querySelector('#' + lang + '-btn-code');
   const btnPreview = targetPanel.querySelector('#' + lang + '-btn-preview');
-  const paneCode = targetPanel.querySelector('#' + lang + '-pane-code');
-  const panePreview = targetPanel.querySelector('#' + lang + '-pane-preview');
+  const paneCode   = targetPanel.querySelector('#' + lang + '-pane-code');
+  const panePreview= targetPanel.querySelector('#' + lang + '-pane-preview');
 
-  if(btnCode) btnCode.classList.remove('active');
-  if(btnPreview) btnPreview.classList.remove('active');
-  if(paneCode) paneCode.classList.remove('active');
-  if(panePreview) panePreview.classList.remove('active');
+  if (btnCode)    btnCode.classList.remove('active');
+  if (btnPreview) btnPreview.classList.remove('active');
+  if (paneCode)   paneCode.classList.remove('active');
+  if (panePreview)panePreview.classList.remove('active');
 
-  const activeBtn = targetPanel.querySelector(`#${lang}-btn-${viewMode}`);
+  const activeBtn  = targetPanel.querySelector(`#${lang}-btn-${viewMode}`);
   const activePane = targetPanel.querySelector(`#${lang}-pane-${viewMode}`);
 
-  if(activeBtn) activeBtn.classList.add('active');
-  if(activePane) activePane.classList.add('active');
+  if (activeBtn)  activeBtn.classList.add('active');
+  if (activePane) activePane.classList.add('active');
 
-  if(viewMode === 'preview') syncRuntimeSandbox(lang);
+  if (viewMode === 'preview') syncRuntimeSandbox(lang);
 }
 
 function setTemplatePrompt(lang, sentence) {
   const promptInput = document.getElementById(`${lang}-prompt-input`);
-  if(promptInput) {
+  if (promptInput) {
     promptInput.value = sentence;
     promptInput.focus();
   }
 
   const template = findStarterTemplate(lang, sentence);
-  if(template) {
+  if (template) {
     applyGeneratedCode(template, lang);
     switchMainTab(lang);
     switchOutputTab(lang, 'code');
@@ -190,36 +190,53 @@ function setTemplatePrompt(lang, sentence) {
 
 function triggerLiveAiGeneration() {
   const activeLanguageTab = getActiveTab();
-  const currentPromptEl = document.getElementById(`${activeLanguageTab}-prompt-input`);
+  const currentPromptEl  = document.getElementById(`${activeLanguageTab}-prompt-input`);
   const currentPromptVal = currentPromptEl ? currentPromptEl.value.trim() : '';
 
-  if(currentPromptVal) {
-    generateAiCode(activeLanguageTab);
-  }
+  if (currentPromptVal) generateAiCode(activeLanguageTab);
+}
+
+// ---------------------------------------------------------------------------
+// buildSystemPrompt — tightly constrained so models don't add preamble text
+// ---------------------------------------------------------------------------
+function buildSystemPrompt(lang, rawPrompt, formatOpt, depthOpt) {
+  return `You are a frontend code generator. Your ENTIRE response must be a single JSON object — nothing before the opening brace, nothing after the closing brace, no markdown fences, no prose.
+
+Required JSON shape (all values are strings):
+{"html":"...","css":"...","js":"...","explanation":"..."}
+
+Rules:
+- "html": inner body markup only (no <html>/<head>/<body> wrapper tags).
+- "css": plain CSS rules, no <style> tags.
+- "js": plain JavaScript, no <script> tags, no ES module syntax (import/export).
+- "explanation": one or two sentences describing what was generated.
+- Format preference: ${formatOpt === 'separate' ? 'put styles in the css field, not inline on elements' : 'inline styles are acceptable'}.
+- Depth: ${depthOpt === 'clean' ? 'output clean, minimal code' : 'output a full, detailed implementation'}.
+- All three code fields must work together when injected into a single browser iframe.
+- Escape all double-quotes inside string values with \\". Escape all newlines as \\n.
+- Do NOT truncate. Output the complete JSON even if it is long.
+
+User request: ${rawPrompt}`;
 }
 
 async function generateAiCode(lang) {
   const apiKey = normalizeOpenRouterKey(sessionStorage.getItem('openrouter_key'));
 
   const promptInput = document.getElementById(`${lang}-prompt-input`);
-  if(!promptInput) return;
+  if (!promptInput) return;
   const rawPrompt = promptInput.value.trim();
-  if(!rawPrompt) {
+  if (!rawPrompt) {
     alert('Please provide asset style design guidelines description attributes first.');
     return;
   }
 
-  const formatOpt = document.getElementById(`${lang}-format-select`) ? document.getElementById(`${lang}-format-select`).value : 'inline';
-  const depthOpt = document.getElementById(`${lang}-depth-select`) ? document.getElementById(`${lang}-depth-select`).value : 'full';
+  const formatOpt = document.getElementById(`${lang}-format-select`)?.value ?? 'inline';
+  const depthOpt  = document.getElementById(`${lang}-depth-select`)?.value  ?? 'full';
 
   setGeneratingState(lang, true);
   showGlobalToast('🤖 Contacting AI workspace nodes...');
 
-  const systemPrompt = `You are an expert Frontend Component Code Generator. Return ONLY valid JSON with no markdown fences, no explanations, nothing else.
-JSON must be exactly this structure:
-{"html":"...HTML markup...","css":"...CSS rules...","js":"...JavaScript...","explanation":"...brief explanation..."}
-User request: ${rawPrompt}
-Generate working code for all three fields that works together in a browser iframe.`;
+  const systemPrompt = buildSystemPrompt(lang, rawPrompt, formatOpt, depthOpt);
 
   try {
     let apiResponse;
@@ -231,8 +248,8 @@ Generate working code for all three fields that works together in a browser ifra
           ...(apiKey ? { Authorization: `Bearer ${apiKey}`, 'x-openrouter-key': apiKey } : {})
         },
         body: JSON.stringify({
-          systemPrompt: systemPrompt,
-          userMessage: `Generate ${lang.toUpperCase()} component`
+          systemPrompt,
+          userMessage: `Generate a ${lang.toUpperCase()} component: ${rawPrompt}`
         })
       });
     } catch (_networkError) {
@@ -241,17 +258,26 @@ Generate working code for all three fields that works together in a browser ifra
 
     const responseData = await apiResponse.json().catch(async () => {
       const text = await apiResponse.text();
-      return { error: 'Invalid JSON response', rawText: text };
+      return { error: 'Invalid JSON response from server', rawText: text };
     });
 
-    if(!apiResponse.ok) {
+    if (!apiResponse.ok) {
       throw new Error(responseData.error || `API error ${apiResponse.status}`);
     }
 
+    // Warn user if model stopped early due to token limit
+    if (responseData.finish_reason === 'length') {
+      console.warn('Model hit token limit — response may be truncated. Consider a shorter prompt.');
+      showGlobalToast('⚠️ Response may be truncated (token limit)');
+    }
+
     const rawText = extractTextPayload(responseData).trim();
-    
-    if (!rawText || rawText.length < 50) {
-      throw new Error('API returned incomplete response (too short). Check API limits or try again.');
+
+    // Debug: log first 400 chars so issues are visible in the browser console
+    console.debug('[WOWERS] Raw AI response (' + rawText.length + ' chars):', rawText.slice(0, 400));
+
+    if (!rawText || rawText.length < 30) {
+      throw new Error('API returned an empty or incomplete response. Check your API key and try again.');
     }
 
     const codeData = parseGeneratedJson(rawText);
@@ -260,16 +286,22 @@ Generate working code for all three fields that works together in a browser ifra
     showGlobalToast('✅ AI Component compiled!');
 
   } catch (error) {
-    console.error('Generation error:', error.message);
-    
+    console.error('[WOWERS] Generation error:', error.message);
+
     const template = findStarterTemplate(lang, rawPrompt);
-    if(template) {
+    if (template) {
       applyGeneratedCode(template, lang);
       switchOutputTab(lang, 'code');
       showGlobalToast('⚠️ Used template (API issue)');
-      alert('API issue: ' + error.message + '\n\nLoaded a matching template instead. Try:\n• Using a shorter prompt\n• Checking your API key\n• Waiting a moment before retrying');
+      alert(
+        'API issue: ' + error.message +
+        '\n\nLoaded a matching template instead. Try:\n' +
+        '• Using a shorter or simpler prompt\n' +
+        '• Checking your API key\n' +
+        '• Waiting a moment before retrying'
+      );
     } else {
-      showGlobalToast('❌ Error');
+      showGlobalToast('❌ Generation failed');
       alert('Error: ' + error.message);
     }
   } finally {
@@ -279,35 +311,35 @@ Generate working code for all three fields that works together in a browser ifra
 
 function findStarterTemplate(lang, sentence) {
   const normalizedSentence = String(sentence || '').toLowerCase();
-  return starterTemplates.find(template => template.lang === lang && normalizedSentence.includes(template.match));
+  return starterTemplates.find(t => t.lang === lang && normalizedSentence.includes(t.match));
 }
 
 function applyGeneratedCode(codeMatrix, activeLang) {
   const normalized = normalizeGeneratedCode(codeMatrix, activeLang);
   ['html', 'css', 'js'].forEach(lang => {
-    if(typeof normalized[lang] === 'string') {
+    if (typeof normalized[lang] === 'string') {
       appState[lang].activeCode = normalized[lang];
       const editor = document.getElementById(`${lang}-preview-editor`);
-      if(editor) editor.value = normalized[lang];
+      if (editor) editor.value = normalized[lang];
     }
   });
 
   document.querySelectorAll('.panel').forEach(panel => {
     const panelLang = panel.id.split('-')[0];
-    const codeTarget = panel.querySelector(`#${panelLang}-code-target`);
-    const emptyState = panel.querySelector(`#${panelLang}-empty-view`);
-    const explanationContainer = panel.querySelector(`#${panelLang}-explanation-box`);
+    const codeTarget          = panel.querySelector(`#${panelLang}-code-target`);
+    const emptyState          = panel.querySelector(`#${panelLang}-empty-view`);
+    const explanationContainer= panel.querySelector(`#${panelLang}-explanation-box`);
 
-    if(emptyState) emptyState.style.display = 'none';
-    if(codeTarget) {
+    if (emptyState) emptyState.style.display = 'none';
+    if (codeTarget) {
       codeTarget.style.display = 'block';
       codeTarget.textContent = appState[panelLang].activeCode || '';
     }
-    if(explanationContainer && normalized.explanation) {
+    if (explanationContainer && normalized.explanation) {
       explanationContainer.replaceChildren();
-      const explanationParagraph = document.createElement('p');
-      explanationParagraph.textContent = normalized.explanation;
-      explanationContainer.appendChild(explanationParagraph);
+      const p = document.createElement('p');
+      p.textContent = normalized.explanation;
+      explanationContainer.appendChild(p);
     }
   });
 
@@ -319,100 +351,117 @@ function normalizeGeneratedCode(rawMatrix, requestedLang) {
   const fallbackCode = typeof matrix.code === 'string' ? matrix.code : '';
 
   return {
-    html: stringifyCode(matrix.html) || (requestedLang === 'html' ? fallbackCode : appState.html.activeCode),
-    css: stringifyCode(matrix.css) || (requestedLang === 'css' ? fallbackCode : appState.css.activeCode),
-    js: stringifyCode(matrix.js || matrix.javascript) || (requestedLang === 'js' ? fallbackCode : appState.js.activeCode),
+    html:        stringifyCode(matrix.html)                                        || (requestedLang === 'html' ? fallbackCode : appState.html.activeCode),
+    css:         stringifyCode(matrix.css)                                         || (requestedLang === 'css'  ? fallbackCode : appState.css.activeCode),
+    js:          stringifyCode(matrix.js || matrix.javascript)                     || (requestedLang === 'js'   ? fallbackCode : appState.js.activeCode),
     explanation: stringifyCode(matrix.explanation || matrix.notes || matrix.description) || 'Generated code is ready.'
   };
 }
 
 function stringifyCode(value) {
-  if(typeof value === 'string') return value;
-  if(Array.isArray(value)) return value.join('\n');
-  if(value && typeof value === 'object') return JSON.stringify(value, null, 2);
+  if (typeof value === 'string')  return value;
+  if (Array.isArray(value))       return value.join('\n');
+  if (value && typeof value === 'object') return JSON.stringify(value, null, 2);
   return '';
 }
 
+/**
+ * extractTextPayload — robust extraction from multiple server response shapes.
+ * Server sends: { content: [{ type: 'text', text: '...' }], finish_reason: '...' }
+ */
 function extractTextPayload(apiResponse) {
+  // Primary path: content array (our server format)
   const content = apiResponse?.content;
   if (Array.isArray(content)) {
-    return content.map(item => (typeof item === 'string' ? item : item?.text || '')).join('');
+    const joined = content
+      .map(item => (typeof item === 'string' ? item : (item?.text ?? '')))
+      .join('');
+    if (joined.trim()) return joined;
   }
-  if (typeof apiResponse?.text === 'string') return apiResponse.text;
-  if (typeof apiResponse?.content === 'string') return apiResponse.content;
+
+  // Fallback: flat string fields
+  if (typeof apiResponse?.text    === 'string' && apiResponse.text.trim())    return apiResponse.text;
+  if (typeof apiResponse?.content === 'string' && apiResponse.content.trim()) return apiResponse.content;
+
+  // Last resort: the response itself is a JSON string
+  if (typeof apiResponse === 'string') return apiResponse;
+
   return '';
 }
 
+/**
+ * parseGeneratedJson — multi-attempt JSON parser with repair heuristics.
+ */
 function parseGeneratedJson(rawText) {
-  if (!rawText || rawText.length < 20) {
+  if (!rawText || rawText.length < 10) {
     throw new Error('Response too short to contain valid JSON');
   }
 
-  // Remove markdown fences
+  // Strip markdown code fences if present
   let cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
 
-  // Try direct parse
-  try {
-    return JSON.parse(cleaned);
-  } catch (e1) {
-    // Try extracting JSON from between braces
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
+  // Attempt 1 — direct parse
+  try { return JSON.parse(cleaned); } catch (_) { /* continue */ }
 
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
-      
-      try {
-        return JSON.parse(jsonStr);
-      } catch (e2) {
-        // Try to fix common issues
-        const fixed = fixMalformedJson(jsonStr);
-        try {
-          return JSON.parse(fixed);
-        } catch (e3) {
-          console.error('JSON parsing failed after 3 attempts:', {
-            original: e1.message,
-            extracted: e2.message,
-            fixed: e3.message,
-            responseLength: rawText.length,
-            preview: rawText.slice(0, 300)
-          });
-          throw new Error('Response JSON is too malformed (incomplete strings, unescaped newlines, etc.)');
-        }
-      }
+  // Attempt 2 — extract between first { and last }
+  const first = cleaned.indexOf('{');
+  const last  = cleaned.lastIndexOf('}');
+
+  if (first >= 0 && last > first) {
+    const jsonStr = cleaned.slice(first, last + 1);
+
+    try { return JSON.parse(jsonStr); } catch (_) { /* continue */ }
+
+    // Attempt 3 — apply repair heuristics then parse
+    const fixed = repairJson(jsonStr);
+    try { return JSON.parse(fixed); } catch (e3) {
+      console.error('[WOWERS] JSON parse failed after 3 attempts:', {
+        error: e3.message,
+        responseLength: rawText.length,
+        preview: rawText.slice(0, 400)
+      });
+      throw new Error(
+        'AI response contained malformed JSON (incomplete strings, unescaped characters, etc.). ' +
+        'Try rephrasing your prompt or using a shorter description.'
+      );
     }
-
-    console.error('Could not find JSON braces in response:', rawText.slice(0, 200));
-    throw new Error('Response does not contain valid JSON structure');
   }
+
+  console.error('[WOWERS] No JSON braces found:', rawText.slice(0, 300));
+  throw new Error(
+    'AI response did not contain a JSON object. ' +
+    'The model may have returned plain text instead. Try again.'
+  );
 }
 
-function fixMalformedJson(str) {
-  let fixed = str;
-  
-  // Remove control characters
-  fixed = fixed.replace(/[\x00-\x1F\x7F]/g, ' ');
-  
-  // Fix unescaped newlines in strings
-  fixed = fixed.replace(/:\s*"([^"]*)\n([^"]*)"/g, ': "$1\\n$2"');
-  
-  // Fix single quotes
-  fixed = fixed.replace(/:\s*'([^']*)'/g, ': "$1"');
-  
-  // Fix trailing commas
-  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
-  
-  // Add missing closing braces if needed
-  const openBraces = (fixed.match(/{/g) || []).length;
-  const closeBraces = (fixed.match(/}/g) || []).length;
-  if (openBraces > closeBraces) {
-    fixed += '}';
-  }
-  
-  return fixed;
+/**
+ * repairJson — best-effort fixes for common AI output issues.
+ */
+function repairJson(str) {
+  let s = str;
+
+  // Strip control characters (tabs/newlines OUTSIDE strings are fine; inside break JSON)
+  // Replace literal newlines inside string values with \n
+  s = s.replace(/("(?:[^"\\]|\\.)*")|(\n)/g, (match, strPart, newline) => {
+    if (strPart) return strPart; // leave string contents alone
+    return newline ? ' ' : match; // collapse bare newlines between tokens
+  });
+
+  // Fix single-quoted values: :'foo' → :"foo"
+  s = s.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+  // Fix trailing commas before ] or }
+  s = s.replace(/,(\s*[}\]])/g, '$1');
+
+  // Close unclosed braces
+  const open  = (s.match(/{/g) || []).length;
+  const close = (s.match(/}/g) || []).length;
+  if (open > close) s += '}'.repeat(open - close);
+
+  return s;
 }
 
 function sanitizeRunnableScript(sourceCode) {
@@ -457,29 +506,29 @@ function syncRuntimeSandbox(lang) {
   if (!activePanel) return;
 
   const htmlEditor = activePanel.querySelector('#html-preview-editor');
-  const cssEditor = activePanel.querySelector('#css-preview-editor');
-  const jsEditor = activePanel.querySelector('#js-preview-editor');
+  const cssEditor  = activePanel.querySelector('#css-preview-editor');
+  const jsEditor   = activePanel.querySelector('#js-preview-editor');
 
-  const liveHtml = htmlEditor?.value || appState.html.activeCode;
-  const liveCss = cssEditor?.value || appState.css.activeCode;
-  const liveJs = jsEditor?.value || appState.js.activeCode;
+  const liveHtml = htmlEditor?.value ?? appState.html.activeCode;
+  const liveCss  = cssEditor?.value  ?? appState.css.activeCode;
+  const liveJs   = jsEditor?.value   ?? appState.js.activeCode;
 
   appState.html.activeCode = liveHtml;
-  appState.css.activeCode = liveCss;
-  appState.js.activeCode = liveJs;
+  appState.css.activeCode  = liveCss;
+  appState.js.activeCode   = liveJs;
 
   const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
 
   const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
-  if(sidebarFrame) sidebarFrame.srcdoc = doc;
+  if (sidebarFrame) sidebarFrame.srcdoc = doc;
 
   const mobileFrame = document.getElementById(`${lang}-mobile-sandbox-frame`);
-  if(mobileFrame) mobileFrame.srcdoc = doc;
+  if (mobileFrame) mobileFrame.srcdoc = doc;
 }
 
 function setGeneratingState(lang, isGenerating) {
   const button = document.querySelector(`#${lang}-panel .generate-btn`);
-  if(!button) return;
+  if (!button) return;
   button.disabled = isGenerating;
   button.classList.toggle('is-loading', isGenerating);
   button.innerHTML = isGenerating
@@ -489,7 +538,7 @@ function setGeneratingState(lang, isGenerating) {
 
 function copyWorkspaceOutput(lang) {
   const editorElement = document.getElementById(`${lang}-preview-editor`);
-  const liveContent = editorElement?.value || appState[lang].activeCode;
+  const liveContent = editorElement?.value ?? appState[lang].activeCode;
   navigator.clipboard.writeText(liveContent || '').then(() => {
     showGlobalToast('📋 Copied!');
   });
@@ -497,8 +546,8 @@ function copyWorkspaceOutput(lang) {
 
 function downloadWorkspaceOutput(lang, extension) {
   const editorElement = document.getElementById(`${lang}-preview-editor`);
-  const liveContent = editorElement?.value || appState[lang].activeCode;
-  if(!liveContent) return;
+  const liveContent = editorElement?.value ?? appState[lang].activeCode;
+  if (!liveContent) return;
   const dataBlob = new Blob([liveContent], { type: 'text/plain;charset=utf-8' });
   const downloadAnchor = document.createElement('a');
   downloadAnchor.href = URL.createObjectURL(dataBlob);
@@ -511,10 +560,10 @@ function downloadWorkspaceOutput(lang, extension) {
 
 function showGlobalToast(msg) {
   const toastElement = document.getElementById('global-toast');
-  const toastText = document.getElementById('toast-text');
-  if(toastElement && toastText) {
+  const toastText    = document.getElementById('toast-text');
+  if (toastElement && toastText) {
     toastText.textContent = msg;
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
-                                             }
+}
