@@ -3,102 +3,213 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web Helper - Workspace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <title>WOWERS // AI Space-Glitch Workspace</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="auth-mode" id="app-body">
+<body id="app-body" class="auth-mode">
 
-  <div class="hero-section" id="hero-banner">
-    <div class="hero-left">
-      <h1>WEB HELPER</h1>
-      <p class="intro-subtitle">
-        An AI-powered development environment to seamlessly generate, style, and preview web layout templates.
-      </p>
-      <div class="api-key-container">
-        <label for="apikey-input" class="input-label">Connect OpenRouter Engine</label>
-        <input id="apikey-input" type="password" placeholder="Enter your API token keys...">
-        <button onclick="saveApiKey()">ENTER KEY</button>
-      </div>
+  <!-- STANDALONE ROUTER LAYOUTS -->
+  <div id="standalone-editor-view" class="standalone-view" style="display: none;">
+    <div class="standalone-header">
+      <div class="brand"><i class="fa-solid fa-terminal glitch-text"></i> WOWERS // LIVE_EDITOR</div>
+      <div id="editor-tab-indicator" class="tab-indicator">HTML MODE</div>
     </div>
-    <div class="hero-right">
-      <h2>Design Workspace</h2>
-    </div>
+    <textarea id="standalone-textarea" oninput="syncStandaloneToStorage()"></textarea>
   </div>
 
-  <div class="workspace-wrapper" id="main-workspace">
+  <div id="standalone-preview-view" class="standalone-view" style="display: none;">
+    <iframe id="standalone-iframe"></iframe>
+  </div>
 
-    <header class="top-navbar">
-      <div class="navbar-logo">
-        <div class="logo-icon">
-          <span>S</span><span class="logo-slash">/</span><span>f</span>
-        </div>
+  <!-- MAIN WORKSPACE APPLICATION INTERFACE -->
+  <div id="main-application-container">
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="glitch-title" data-text="WOWERS">WOWERS</span>
+        <span class="system-status">// SYSTEM_ACTIVE</span>
       </div>
-      <nav class="navbar-tabs">
-        <button class="nav-tab css-nav active" onclick="switchMainTab('css')">
-          <span class="nav-dot css-dot"></span>CSS
-        </button>
-        <button class="nav-tab js-nav" onclick="switchMainTab('js')">
-          <span class="nav-dot js-dot"></span>JAVASCRIPT
-        </button>
-        <button class="nav-tab html-nav" onclick="switchMainTab('html')">
-          <span class="nav-dot html-dot"></span>HTML
-        </button>
+      <nav class="main-tabs">
+        <button class="nav-tab html-nav active" onclick="switchMainTab('html')">HTML Layer</button>
+        <button class="nav-tab css-nav" onclick="switchMainTab('css')">CSS Sheet</button>
+        <button class="nav-tab js-nav" onclick="switchMainTab('js')">JS Script</button>
       </nav>
-      <div class="navbar-actions">
-        <button class="nav-action-btn" onclick="copyWorkspaceOutput(getActiveTab())"><i class="fa-regular fa-copy"></i> <span>Copy</span></button>
-        <button class="nav-action-btn download" onclick="downloadWorkspaceOutput(getActiveTab(), getActiveTab())"><i class="fa-solid fa-download"></i> <span>Download</span></button>
+      <div class="view-actions">
+        <button class="action-btn btn-edge-glow" onclick="openStandaloneView('editor')"><i class="fa-solid fa-code"></i> Code Editor <i class="fa-solid fa-arrow-up-right-from-square style-icon"></i></button>
+        <button class="action-btn btn-edge-glow" onclick="openStandaloneView('preview')"><i class="fa-solid fa-eye"></i> Live Preview <i class="fa-solid fa-arrow-up-right-from-square style-icon"></i></button>
       </div>
     </header>
 
-    <main class="panels-area">
+    <!-- SYNCHRONIZED INFINITE SCROLL SECTION (Moves to the Right) -->
+    <section class="ticker-section">
+      <div class="ticker-wrap">
+        <div class="ticker-flex">
+          <!-- Track 1 -->
+          <div class="ticker-track">
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'glass card')">
+              <i class="fa-solid fa-layer-group"></i> <span>Glass Card Template</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'neon button')">
+              <i class="fa-solid fa-circle-play"></i> <span>Neon Button Template</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'animated loader')">
+              <i class="fa-solid fa-spinner"></i> <span>Animated Loader</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'interactive button')">
+              <i class="fa-solid fa-arrow-pointer"></i> <span>Interactive Counter</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'game logic')">
+              <i class="fa-solid fa-gamepad"></i> <span>Number Guess Game</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'api fetcher')">
+              <i class="fa-solid fa-cloud-arrow-down"></i> <span>API Data Fetcher</span>
+            </div>
+          </div>
+          <!-- Track 2 (Identical Duplicate for Seamless Infinity Scroll) -->
+          <div class="ticker-track">
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'glass card')">
+              <i class="fa-solid fa-layer-group"></i> <span>Glass Card Template</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'neon button')">
+              <i class="fa-solid fa-circle-play"></i> <span>Neon Button Template</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'animated loader')">
+              <i class="fa-solid fa-spinner"></i> <span>Animated Loader</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'interactive button')">
+              <i class="fa-solid fa-arrow-pointer"></i> <span>Interactive Counter</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'game logic')">
+              <i class="fa-solid fa-gamepad"></i> <span>Number Guess Game</span>
+            </div>
+            <div class="template-card" onclick="setTemplatePrompt(getActiveTab(), 'api fetcher')">
+              <i class="fa-solid fa-cloud-arrow-down"></i> <span>API Data Fetcher</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <!-- ===== CSS PANEL ===== -->
-      <div class="panel active" id="css-panel">
+    <!-- GENERATOR CHANNELS -->
+    <main class="workspace-layout">
+      <!-- HTML LAYER PANEL -->
+      <div id="html-panel" class="panel active">
+        <div class="panel-control-bar">
+          <input type="text" id="html-prompt-input" class="prompt-input" placeholder="Instruct HTML Node... (e.g., hero section)">
+          <select id="html-format-select" class="select-menu">
+            <option value="separate">Separate CSS Sheets</option>
+            <option value="inline">Inline Clean Styles</option>
+          </select>
+          <select id="html-depth-select" class="select-menu">
+            <option value="full">Full Architectural Depth</option>
+            <option value="clean">Minimal Matrix</option>
+          </select>
+          <button class="generate-btn" onclick="triggerLiveAiGeneration()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI</button>
+        </div>
+        
         <div class="workspace-split">
-
-          <!-- LEFT SIDEBAR: controls + live preview below generate -->
-          <aside class="left-sidebar">
-            <div class="sidebar-heading"><span class="heading-dot css-dot"></span>DESCRIBE YOUR STYLES</div>
-
-            <!-- Controls (templates + describe + generate) -->
-            <div class="sidebar-controls">
-              <div class="quick-templates-section">
-                <div class="section-label">QUICK TEMPLATES</div>
-                <div class="templates-grid">
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Dark card component with neon glow shadow')">Dark card</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Gradient hero banner canvas theme layout')">Hero banner</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Animated bounce button hover effect')">Button hover</button>
-                  <button class="tpl-btn" onclick="setTemplatePrompt('css', 'Glassmorphism dark frosted UI panel')">Glassmorphism</button>
-                </div>
-              </div>
-              <div class="describe-section">
-                <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe layout requirements</div>
-                <textarea class="describe-input" id="css-prompt-input" placeholder="Type structural layout directions..."></textarea>
-                <div class="options-row">
-                  <select class="option-select" id="css-format-select" onchange="triggerLiveAiGeneration()">
-                    <option value="inline">Inline CSS</option>
-                    <option value="separate">Separate &lt;style&gt;</option>
-                  </select>
-                  <select class="option-select" id="css-depth-select" onchange="triggerLiveAiGeneration()">
-                    <option value="full">Full breakdown</option>
-                    <option value="clean">Clean output</option>
-                  </select>
-                </div>
-                <button class="generate-btn" onclick="generateAiCode('css')">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI
-                </button>
-              </div>
+          <div class="workspace-column-code">
+            <div class="sub-tabs">
+              <button id="html-btn-code" class="sub-tab active" onclick="switchOutputTab('html', 'code')">Raw Source</button>
+              <button id="html-btn-preview" class="sub-tab" onclick="switchOutputTab('html', 'preview')">Internal Preview</button>
             </div>
-
-            <!-- LIVE PREVIEW — below generate button (desktop only, hidden mobile) -->
-            <div class="sidebar-preview">
-              <div class="pane-bar"><span>LIVE PREVIEW</span></div>
-              <iframe id="css-sandbox-frame"></iframe>
+            <div id="html-pane-code" class="pane-content active">
+              <textarea id="html-preview-editor" class="editor-textarea" oninput="syncAllSandboxes()"></textarea>
             </div>
-          </aside>
+            <div id="html-pane-preview" class="pane-content">
+              <div id="html-empty-view" class="empty-notice">No compilation generated yet.</div>
+              <pre id="html-code-target" class="compiled-display" style="display:none;"></pre>
+              <div id="html-explanation-box" class="explanation-box"></div>
+            </div>
+          </div>
+          <div class="workspace-column-sandbox">
+            <iframe id="html-sandbox-frame" class="sandbox-frame"></iframe>
+            <iframe id="html-mobile-sandbox-frame" class="sandbox-frame mobile" style="display:none;"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSS PANEL -->
+      <div id="css-panel" class="panel">
+        <div class="panel-control-bar">
+          <input type="text" id="css-prompt-input" class="prompt-input" placeholder="Instruct CSS Node... (e.g., glass card)">
+          <select id="css-format-select" class="select-menu"><option value="separate">Separate</option></select>
+          <select id="css-depth-select" class="select-menu"><option value="full">Full</option></select>
+          <button class="generate-btn" onclick="triggerLiveAiGeneration()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI</button>
+        </div>
+        <div class="workspace-split">
+          <div class="workspace-column-code">
+            <div class="sub-tabs">
+              <button id="css-btn-code" class="sub-tab active" onclick="switchOutputTab('css', 'code')">Raw Source</button>
+              <button id="css-btn-preview" class="sub-tab" onclick="switchOutputTab('css', 'preview')">Internal Preview</button>
+            </div>
+            <div id="css-pane-code" class="pane-content active">
+              <textarea id="css-preview-editor" class="editor-textarea" oninput="syncAllSandboxes()"></textarea>
+            </div>
+            <div id="css-pane-preview" class="pane-content">
+              <pre id="css-code-target" class="compiled-display"></pre>
+              <div id="css-explanation-box" class="explanation-box"></div>
+            </div>
+          </div>
+          <div class="workspace-column-sandbox">
+            <iframe id="css-sandbox-frame" class="sandbox-frame"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- JS PANEL -->
+      <div id="js-panel" class="panel">
+        <div class="panel-control-bar">
+          <input type="text" id="js-prompt-input" class="prompt-input" placeholder="Instruct JS Node... (e.g., interactive button)">
+          <select id="js-format-select" class="select-menu"><option value="separate">Separate</option></select>
+          <select id="js-depth-select" class="select-menu"><option value="full">Full</option></select>
+          <button class="generate-btn" onclick="triggerLiveAiGeneration()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI</button>
+        </div>
+        <div class="workspace-split">
+          <div class="workspace-column-code">
+            <div class="sub-tabs">
+              <button id="js-btn-code" class="sub-tab active" onclick="switchOutputTab('js', 'code')">Raw Source</button>
+              <button id="js-btn-preview" class="sub-tab" onclick="switchOutputTab('js', 'preview')">Internal Preview</button>
+            </div>
+            <div id="js-pane-code" class="pane-content active">
+              <textarea id="js-preview-editor" class="editor-textarea" oninput="syncAllSandboxes()"></textarea>
+            </div>
+            <div id="js-pane-preview" class="pane-content">
+              <pre id="js-code-target" class="compiled-display"></pre>
+              <div id="js-explanation-box" class="explanation-box"></div>
+            </div>
+          </div>
+          <div class="workspace-column-sandbox">
+            <iframe id="js-sandbox-frame" class="sandbox-frame"></iframe>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- AUTH LAYER: FROSTED GLASS NEON GATEWAY WITH SPINNING LIGHT BORDER -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-glitch-logo" data-text="WOWERS LAYER">WOWERS LAYER</div>
+        <p class="auth-subtitle">DEEP SPACE NODE DEPLOYMENT INITIALIZATION</p>
+      </div>
+      <div class="auth-form-group">
+        <label for="apikey-input"><i class="fa-solid fa-key text-neon-blue"></i> OpenRouter Engine Key</label>
+        <input type="password" id="apikey-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxx...">
+      </div>
+      <button class="auth-submit-btn btn-edge-glow" onclick="saveApiKey()">Connect Neural Workspace</button>
+    </div>
+  </div>
+
+  <!-- GLOBAL NOTIFICATION TOAST -->
+  <div id="global-toast">
+    <span id="toast-text">Workspace established.</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+  </html>          </aside>
 
           <!-- CENTER: Code output + mobile preview tab -->
           <div class="center-output">
