@@ -1,6 +1,6 @@
 # WOWERS
 
-WOWERS is a browser-based HTML/CSS/JavaScript generation workspace with built-in starter templates and a small Express proxy for OpenRouter chat completions.
+WOWERS is a browser-based HTML/CSS/JavaScript generation workspace with built-in starter templates and a small Express proxy for OpenRouter chat completions.It's still a beta tester. 
 
 ## Setup
 
