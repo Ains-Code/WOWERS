@@ -1,8 +1,13 @@
 import 'dotenv/config';
+import dns from 'dns';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Fix for Termux / Android / some Linux environments where Node defaults to
+// IPv6 DNS lookup which fails with ENOTFOUND even when the network is up.
+dns.setDefaultResultOrder('ipv4first');
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -193,13 +198,15 @@ app.post('/api/generate', async (req, res) => {
 
   } catch (error) {
     if (timeout) clearTimeout(timeout);
-    const isAbort = error?.name === 'AbortError';
+    const isAbort   = error?.name === 'AbortError';
+    const isNetwork = error?.cause?.code === 'ENOTFOUND' || error?.cause?.code === 'ECONNREFUSED' || error?.cause?.code === 'ETIMEDOUT';
     console.error('API Proxy Error:', error);
-    res.status(isAbort ? 504 : 500).json({
-      error: isAbort
-        ? 'OpenRouter request timed out (55 seconds). Try a shorter prompt or check API status.'
-        : error.message || 'Failed to communicate with AI.'
-    });
+    const message = isAbort
+      ? 'OpenRouter request timed out (55 seconds). Try a shorter prompt or check API status.'
+      : isNetwork
+        ? `Cannot reach openrouter.ai — check your internet connection. (${error?.cause?.code ?? error.message})`
+        : error.message || 'Failed to communicate with AI.';
+    res.status(isAbort ? 504 : 500).json({ error: message });
   }
 });
 
