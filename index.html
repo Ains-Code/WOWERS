@@ -135,10 +135,12 @@
                 <textarea class="describe-input" id="css-prompt-input" placeholder="Type structural layout directions..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="css-format-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="inline">Inline CSS</option>
                     <option value="separate">Separate &lt;style&gt;</option>
                   </select>
                   <select class="option-select" id="css-depth-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="full">Full breakdown</option>
                     <option value="clean">Clean output</option>
                   </select>
@@ -181,12 +183,7 @@
             </div>
           </div><!-- /.center-output -->
 
-          <aside class="right-explanation">
-            <div class="explanation-title">// EXPLANATION</div>
-            <div class="explain-content" id="css-explanation-box">
-              <p class="explain-hint">Every generate produces an explanation.</p>
-            </div>
-          </aside>
+
 
         </div>
       </div><!-- /#css-panel -->
@@ -228,10 +225,12 @@
                 <textarea class="describe-input" id="js-prompt-input" placeholder="Type functional script instructions..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="js-format-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="vanilla">Vanilla JS</option>
                     <option value="es6">ES6 Modules</option>
                   </select>
                   <select class="option-select" id="js-depth-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="full">Full breakdown</option>
                     <option value="clean">Clean output</option>
                   </select>
@@ -274,13 +273,6 @@
             </div>
           </div><!-- /.center-output -->
 
-          <aside class="right-explanation">
-            <div class="explanation-title">// EXPLANATION</div>
-            <div class="explain-content" id="js-explanation-box">
-              <p class="explain-hint">Every generate produces an explanation.</p>
-            </div>
-          </aside>
-
         </div>
       </div><!-- /#js-panel -->
 
@@ -321,10 +313,12 @@
                 <textarea class="describe-input" id="html-prompt-input" placeholder="Type document node directives..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="html-format-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="inline">Inline CSS</option>
                     <option value="separate">Separate &lt;style&gt;</option>
                   </select>
                   <select class="option-select" id="html-depth-select" onchange="triggerLiveAiGeneration()">
+                    <option value="auto">Auto</option>
                     <option value="full">Full breakdown</option>
                     <option value="clean">Clean output</option>
                   </select>
@@ -366,13 +360,6 @@
               </div>
             </div>
           </div><!-- /.center-output -->
-
-          <aside class="right-explanation">
-            <div class="explanation-title">// EXPLANATION</div>
-            <div class="explain-content" id="html-explanation-box">
-              <p class="explain-hint">Every generate produces an explanation.</p>
-            </div>
-          </aside>
 
         </div>
       </div><!-- /#html-panel -->
