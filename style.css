@@ -1,5 +1,7 @@
 /* ============================================
-   WEB HELPER — Redesigned UI
+   WEB HELPER — Fully Responsive Redesign
+   Desktop: Left sidebar (describe+preview below generate),
+            Center (code output), Right (explanation)
    ============================================ */
 
 :root {
@@ -23,12 +25,15 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--text-main);
   font-family: var(--sans);
-  height: 100vh;
-  width: 100vw;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -89,9 +94,11 @@ body.auth-mode .hero-section {
 
 /* ============ WORKSPACE WRAPPER ============ */
 .workspace-wrapper {
-  display: flex; flex-direction: column;
-  height: 100vh; width: 100%;
-  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 body.auth-mode .workspace-wrapper { display: none; }
 
@@ -100,10 +107,12 @@ body.auth-mode .workspace-wrapper { display: none; }
   height: 56px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
+  display: flex;
+  align-items: center;
   padding: 0 16px 0 0;
   flex-shrink: 0;
   gap: 0;
+  z-index: 10;
 }
 
 .navbar-logo {
@@ -136,6 +145,7 @@ body.auth-mode .workspace-wrapper { display: none; }
   display: flex; align-items: center; gap: 8px;
   cursor: pointer; position: relative;
   transition: color 0.2s;
+  white-space: nowrap;
 }
 .nav-tab:hover { color: var(--text-main); }
 .nav-tab::after {
@@ -166,12 +176,13 @@ body.auth-mode .workspace-wrapper { display: none; }
   background: var(--surface-card);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  padding: 7px 16px;
+  padding: 7px 14px;
   font-family: var(--sans); font-size: 12px; font-weight: 600;
   border-radius: 5px; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
   letter-spacing: 0.03em;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .nav-action-btn:hover { color: var(--text-main); background: var(--surface-input); }
 .nav-action-btn.download {
@@ -190,23 +201,37 @@ body.auth-mode .workspace-wrapper { display: none; }
 }
 
 .panel {
-  display: none; width: 100%; height: 100%;
+  display: none;
+  width: 100%;
+  height: 100%;
   min-height: 0;
 }
 .panel.active { display: flex; }
 
+/* ============================================================
+   DESKTOP LAYOUT (≥901px)
+   Left sidebar: describe controls + preview iframe below generate
+   Center: code output tabs (Code view only, no preview split)
+   Right: explanation
+   ============================================================ */
 .workspace-split {
-  display: flex; width: 100%; height: 100%;
+  display: flex;
+  width: 100%;
+  height: 100%;
   min-height: 0;
 }
 
-/* ============ LEFT SIDEBAR ============ */
+/* ===== LEFT SIDEBAR — Desktop ===== */
 .left-sidebar {
-  width: 260px; min-width: 260px;
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  height: 100%; overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -218,6 +243,16 @@ body.auth-mode .workspace-wrapper { display: none; }
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
   flex-shrink: 0;
+}
+
+/* Scrollable top portion: templates + describe + generate */
+.sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  overflow-y: auto;
+  max-height: 60%;
 }
 
 .quick-templates-section {
@@ -259,11 +294,11 @@ body.auth-mode .workspace-wrapper { display: none; }
 .describe-section {
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 10px;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 .describe-input {
-  width: 100%; height: 110px; min-height: 80px;
+  width: 100%; height: 90px; min-height: 70px;
   background: var(--surface-input);
   border: 1px solid var(--border);
   border-radius: 6px; color: var(--text-main);
@@ -293,12 +328,42 @@ body.auth-mode .workspace-wrapper { display: none; }
   cursor: pointer; display: flex; align-items: center;
   justify-content: center; gap: 8px; letter-spacing: 0.04em;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 .generate-btn:hover { background: var(--purple-hover); }
 .generate-btn:disabled { opacity: 0.65; cursor: wait; }
 .generate-btn.is-loading { background: linear-gradient(135deg, #64748b, #475569); }
 
-/* ============ CENTER OUTPUT ============ */
+/* ===== SIDEBAR LIVE PREVIEW (below generate, desktop only) ===== */
+.sidebar-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-preview .pane-bar {
+  height: 32px;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 14px;
+  font-size: 10px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.sidebar-preview iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: #ffffff;
+  display: block;
+}
+
+/* ===== CENTER OUTPUT — Desktop (code only) ===== */
 .center-output {
   flex: 1;
   display: flex;
@@ -375,7 +440,7 @@ pre {
   white-space: pre-wrap; word-break: break-word;
 }
 
-/* Preview pane */
+/* Preview pane — used in mobile/tablet only for center column */
 .preview-wrap {
   display: flex; flex-direction: column;
   width: 100%; height: 100%;
@@ -410,23 +475,6 @@ pre {
   align-items: center;
 }
 
-.popout-btn {
-  background: var(--surface-input);
-  border: 1px solid var(--border-light);
-  color: var(--cyan-accent);
-  padding: 3px 10px;
-  font-family: var(--sans);
-  font-size: 11px; font-weight: 700;
-  border-radius: 4px; cursor: pointer;
-  display: flex; align-items: center; gap: 5px;
-  transition: all 0.15s;
-}
-.popout-btn:hover {
-  background: var(--cyan-accent);
-  color: #0b0d17;
-  border-color: var(--cyan-accent);
-}
-
 .preview-html-input {
   flex: 1;
   width: 100%;
@@ -437,7 +485,8 @@ pre {
   line-height: 1.7;
 }
 
-iframe {
+/* Center iframe (used in mobile preview tab only) */
+.center-output iframe {
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -446,9 +495,9 @@ iframe {
   display: block;
 }
 
-/* ============ RIGHT EXPLANATION SIDEBAR ============ */
+/* ===== RIGHT EXPLANATION SIDEBAR ===== */
 .right-explanation {
-  width: 260px; min-width: 260px;
+  width: 240px; min-width: 240px; max-width: 240px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   padding: 20px 16px;
@@ -484,47 +533,198 @@ iframe {
   display: flex; align-items: center; gap: 8px;
   transform: translateY(80px); opacity: 0;
   transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  z-index: 999; font-family: var(--sans);
+  z-index: 9999; font-family: var(--sans);
 }
 .toast.show { transform: translateY(0); opacity: 1; }
 
-/* ============ RESPONSIVE ============ */
-@media (max-width: 1100px) {
-  .right-explanation { display: none !important; }
-}
-
+/* ============================================================
+   TABLET (601–900px)
+   Stacked: full-width sidebar top, then center (with tabs), no right panel
+   ============================================================ */
 @media (max-width: 900px) {
-  .top-navbar { height: 52px; }
-  .panels-area { overflow-y: auto; }
-  .workspace-split { flex-direction: column; height: auto; }
+  body {
+    overflow: auto;
+  }
+
+  .workspace-wrapper {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .panels-area {
+    overflow: visible;
+    flex: none;
+  }
+
+  .panel {
+    height: auto;
+    min-height: 0;
+  }
+
+  .workspace-split {
+    flex-direction: column;
+    height: auto;
+  }
+
+  /* Sidebar full width, auto height */
   .left-sidebar {
-    width: 100% !important; min-width: 100% !important;
-    height: auto !important; border-right: none;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible;
+    border-right: none;
     border-bottom: 1px solid var(--border);
   }
+
+  .sidebar-controls {
+    max-height: none;
+    overflow: visible;
+    border-bottom: none;
+  }
+
+  /* Hide sidebar preview on tablet/mobile — use center tabs instead */
+  .sidebar-preview {
+    display: none !important;
+  }
+
+  /* Center output fills width, fixed height */
   .center-output {
     width: 100% !important;
-    height: 800px !important;
-    min-height: 800px !important;
+    height: 520px;
+    flex: none;
   }
-  .preview-panel-box {
-    min-height: 300px;
+
+  /* Right explanation hidden on tablet */
+  .right-explanation {
+    display: none !important;
   }
-  .nav-tab { font-size: 11px; padding: 0 12px; }
+
+  .nav-tab { font-size: 12px; padding: 0 14px; }
   .navbar-logo { width: 52px; }
 }
 
+/* ============================================================
+   MOBILE (≤600px)
+   ============================================================ */
 @media (max-width: 600px) {
   body.auth-mode .hero-section {
-    flex-direction: column; padding: 24px; justify-content: center;
+    flex-direction: column;
+    padding: 24px;
+    justify-content: center;
   }
   .hero-left, .hero-right {
-    padding: 1rem 0; text-align: center; flex: none;
+    padding: 1rem 0;
+    text-align: center;
+    flex: none;
   }
-  .hero-left h1 { font-size: 32px; }
+  .hero-left h1 { font-size: 28px; }
   .hero-right { display: none; }
   .api-key-container { width: 100%; max-width: 100%; }
-  .navbar-tabs { gap: 0; }
-  .nav-tab { font-size: 10px; padding: 0 8px; letter-spacing: 0.04em; }
-  .nav-action-btn { font-size: 11px; }
+
+  .top-navbar {
+    height: 48px;
+    padding: 0 8px 0 0;
+  }
+
+  .navbar-logo {
+    width: 44px;
+    height: 48px;
+  }
+  .logo-icon { width: 32px; height: 32px; font-size: 11px; }
+
+  .navbar-tabs {
+    padding-left: 4px;
+    gap: 0;
+  }
+  .nav-tab {
+    font-size: 10px;
+    padding: 0 8px;
+    height: 48px;
+    letter-spacing: 0.02em;
+    gap: 5px;
+  }
+  .nav-dot { width: 6px; height: 6px; }
+
+  .nav-action-btn {
+    font-size: 10px;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  /* Hide "Download" label text on mobile, show icon only */
+  .nav-action-btn span { display: none; }
+
+  .left-sidebar {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-controls {
+    max-height: none;
+    overflow: visible;
+    border-bottom: none;
+  }
+
+  .sidebar-preview {
+    display: none !important;
+  }
+
+  .templates-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .describe-input {
+    height: 80px;
+    min-height: 60px;
+  }
+
+  .options-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .center-output {
+    width: 100% !important;
+    height: 420px;
+    flex: none;
+  }
+
+  .right-explanation {
+    display: none !important;
+  }
+
+  .code-wrap { padding: 12px; }
+
+  pre { font-size: 11px; }
+
+  .toast {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    font-size: 12px;
+    padding: 10px 14px;
+  }
 }
+
+/* ============================================================
+   EXTRA SMALL (≤380px)
+   ============================================================ */
+@media (max-width: 380px) {
+  .nav-tab {
+    font-size: 9px;
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .nav-tab .nav-dot { display: none; }
+  .nav-action-btn { padding: 5px 6px; }
+
+  .center-output {
+    height: 380px;
+  }
+   }
