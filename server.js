@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(__dirname));
 
+// ✅ API routes BEFORE static middleware so they are never shadowed
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
 const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '1500', 10);
@@ -24,7 +24,6 @@ function getOpenRouterKey(req) {
   const envKey = normalizeOpenRouterKey(process.env.OPENROUTER_KEY);
   const forwardedKey = normalizeOpenRouterKey(req.get('x-openrouter-key'));
   const authorizationKey = normalizeOpenRouterKey(req.get('authorization'));
-
   return envKey || forwardedKey || authorizationKey;
 }
 
@@ -39,7 +38,6 @@ function getOpenRouterErrorMessage(data, fallback = 'OpenRouter request failed.'
 async function readOpenRouterBody(response) {
   const rawText = await response.text().catch(() => '');
   if (!rawText) return {};
-
   try {
     return JSON.parse(rawText);
   } catch (_parseError) {
@@ -63,19 +61,16 @@ app.get('/api/config', (_req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   let timeout;
-
   try {
     const { systemPrompt, userMessage, model } = req.body ?? {};
     const openRouterKey = getOpenRouterKey(req);
 
     if (!openRouterKey) {
-      return res.status(401).json({ error: 'Missing authentication header. Set OPENROUTER_KEY on the server, or provide an OpenRouter key in the app so it can be forwarded as Authorization.' });
+      return res.status(401).json({ error: 'Missing authentication header. Set OPENROUTER_KEY on the server, or provide an OpenRouter key in the app.' });
     }
-
     if (typeof systemPrompt !== 'string' || !systemPrompt.trim()) {
       return res.status(400).json({ error: 'systemPrompt is required.' });
     }
-
     if (typeof userMessage !== 'string' || !userMessage.trim()) {
       return res.status(400).json({ error: 'userMessage is required.' });
     }
@@ -141,9 +136,14 @@ app.post('/api/generate', async (req, res) => {
     if (timeout) clearTimeout(timeout);
     const isAbort = error?.name === 'AbortError';
     console.error('API Proxy Error:', error);
-    res.status(isAbort ? 504 : 500).json({ error: isAbort ? 'OpenRouter request timed out.' : error.message || 'Failed to communicate with AI.' });
+    res.status(isAbort ? 504 : 500).json({
+      error: isAbort ? 'OpenRouter request timed out.' : error.message || 'Failed to communicate with AI.'
+    });
   }
 });
+
+// ✅ Static files AFTER API routes — prevents Express from shadowing POST /api/generate
+app.use(express.static(__dirname));
 
 const PORT = process.env.PORT || 3000;
 
