@@ -46,6 +46,17 @@ window.addEventListener('DOMContentLoaded', () => {
   const viewMode = urlParams.get('view');
   const targetLang = urlParams.get('lang') || 'html';
 
+  // Listen for the physical 'Enter' key inside the login field
+  const loginInput = document.getElementById('apikey-input');
+  if (loginInput) {
+    loginInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveApiKey();
+      }
+    });
+  }
+
   if (viewMode === 'editor' || viewMode === 'preview') {
     document.getElementById('main-application-container').style.display = 'none';
     document.getElementById('auth-overlay').style.display = 'none';
@@ -89,28 +100,12 @@ window.addEventListener('DOMContentLoaded', () => {
     .catch(() => {});
 });
 
-function syncStandaloneToStorage() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetLang = urlParams.get('lang') || 'html';
-  const val = document.getElementById('standalone-textarea').value;
-  localStorage.setItem(`wowers_cross_${targetLang}`, val);
-}
-
 function renderStandalonePreview() {
   const h = localStorage.getItem('wowers_cross_html') || '';
   const c = localStorage.getItem('wowers_cross_css') || '';
   const j = localStorage.getItem('wowers_cross_js') || '';
   const frame = document.getElementById('standalone-iframe');
   if (frame) frame.srcdoc = buildSandboxDoc(h, c, j);
-}
-
-function openStandaloneView(mode) {
-  const currentLang = getActiveTab();
-  localStorage.setItem('wowers_cross_html', document.getElementById('html-preview-editor')?.value || appState.html.activeCode);
-  localStorage.setItem('wowers_cross_css', document.getElementById('css-preview-editor')?.value || appState.css.activeCode);
-  localStorage.setItem('wowers_cross_js', document.getElementById('js-preview-editor')?.value || appState.js.activeCode);
-  
-  window.open(`${window.location.pathname}?view=${mode}&lang=${currentLang}`, '_blank');
 }
 
 function initializeEditors() {
@@ -253,7 +248,7 @@ async function generateAiCode(lang) {
       showGlobalToast('❌ Stream connection failed.');
       alert('Error: ' + err.message);
     }
-  } university {
+  } finally {
     setGeneratingState(lang, false);
   }
 }
@@ -321,7 +316,8 @@ function extractTextPayload(apiResponse) {
 }
 
 function parseGeneratedJson(rawText) {
-  let cleaned = rawText.replace(/^```(json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  let cleaned = rawText.replace(/^```(json)?\s*/i, '').replace(/
+```\s*$/i, '').trim();
   try { return JSON.parse(cleaned); } catch (_) {}
   const fi = cleaned.indexOf('{'), li = cleaned.lastIndexOf('}');
   if (fi >= 0 && li > fi) {
@@ -376,4 +372,95 @@ function showGlobalToast(msg) {
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
-      }
+}
+
+function getActiveTab() {
+  const activeTabBtn = document.querySelector('.nav-tab.active');
+  if (activeTabBtn) {
+    if (activeTabBtn.classList.contains('html-nav')) return 'html';
+    if (activeTabBtn.classList.contains('css-nav')) return 'css';
+    if (activeTabBtn.classList.contains('js-nav')) return 'js';
+  }
+  return 'html';
+}
+
+function openStandaloneView(viewType) {
+  const activeLang = getActiveTab();
+  
+  if (viewType === 'editor') {
+    const editorView = document.getElementById('standalone-editor-view');
+    const textarea = document.getElementById('standalone-textarea');
+    const tabIndicator = document.getElementById('editor-tab-indicator');
+    const sourceTextEditor = document.getElementById(`${activeLang}-preview-editor`);
+    
+    if (editorView && textarea) {
+      textarea.value = sourceTextEditor ? sourceTextEditor.value : appState[activeLang].activeCode;
+      if (tabIndicator) tabIndicator.textContent = `${activeLang.toUpperCase()} LAYER ACTIVE`;
+      editorView.style.display = 'flex';
+    }
+  } else if (viewType === 'preview') {
+    const previewView = document.getElementById('standalone-preview-view');
+    const standaloneIframe = document.getElementById('standalone-iframe');
+    
+    if (previewView && standaloneIframe) {
+      const liveHtml = document.getElementById('html-preview-editor') ? document.getElementById('html-preview-editor').value : appState.html.activeCode;
+      const liveCss = document.getElementById('css-preview-editor') ? document.getElementById('css-preview-editor').value : appState.css.activeCode;
+      const liveJs = document.getElementById('js-preview-editor') ? document.getElementById('js-preview-editor').value : appState.js.activeCode;
+      const runnableScript = sanitizeRunnableScript(liveJs);
+
+      standaloneIframe.srcdoc = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { background: #ffffff; color: #121620; padding: 20px; font-family: sans-serif; margin:0; }
+            ${liveCss}
+          </style>
+        </head>
+        <body>
+          ${liveHtml}
+          <script>
+            try {
+              const userScript = ${JSON.stringify(runnableScript)};
+              new Function(userScript)();
+            } catch(e) { console.error("Sandbox Execution Error:", e); }
+          <\/script>
+        </body>
+        </html>
+      `;
+      previewView.style.display = 'flex';
+    }
+  }
+}
+
+function closeStandaloneViews() {
+  const editorView = document.getElementById('standalone-editor-view');
+  const previewView = document.getElementById('standalone-preview-view');
+  if (editorView) editorView.style.display = 'none';
+  if (previewView) previewView.style.display = 'none';
+}
+
+function syncStandaloneToStorage() {
+  const textarea = document.getElementById('standalone-textarea');
+  if (!textarea) return;
+  
+  const activeLang = getActiveTab();
+  const currentCodeVal = textarea.value;
+  
+  appState[activeLang].activeCode = currentCodeVal;
+  
+  const targetMainEditor = document.getElementById(`${activeLang}-preview-editor`);
+  if (targetMainEditor) targetMainEditor.value = currentCodeVal;
+  
+  const targetCodeViewDisplay = document.querySelector(`#${activeLang}-panel #${activeLang}-code-target`);
+  if (targetCodeViewDisplay) targetCodeViewDisplay.textContent = currentCodeVal;
+  
+  syncRuntimeSandbox(activeLang);
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeStandaloneViews();
+  }
+});
