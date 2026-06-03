@@ -12,21 +12,21 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Glitch-in-Space theme (replaces original style.css) -->
+  <!-- Theme -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-mode" id="app-body">
 
-  <!-- ── Starfield canvas (z-index 0, fixed, pointer-events:none) ── -->
+  <!-- ── Starfield canvas ── -->
   <canvas id="space-canvas"></canvas>
 
   <!-- ── CRT scanline overlay ── -->
   <div class="scanline-overlay"></div>
   <div class="scanline-beam"></div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       AUTH / LOGIN OVERLAY — GLITCH-IN-SPACE
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════
+       AUTH / LOGIN OVERLAY
+  ═══════════════════════════════════════════ -->
   <div class="hero-section" id="hero-banner">
     <div class="auth-panel">
       <div class="auth-corner-bl"></div>
@@ -60,9 +60,9 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════
        MAIN WORKSPACE
-  ═══════════════════════════════════════════════════════════ -->
+  ═══════════════════════════════════════════ -->
   <div class="workspace-wrapper" id="main-workspace">
 
     <!-- ── TOP NAVBAR ── -->
@@ -98,9 +98,14 @@
         <div class="workspace-split">
 
           <aside class="left-sidebar">
-            <div class="sidebar-heading">
-              <span class="heading-dot css-dot"></span>DESCRIBE YOUR STYLES
+
+            <!-- MARQUEE 1: DESCRIBE YOUR STYLE! -->
+            <div class="sidebar-heading marquee-ltr css-marquee">
+              <div class="sidebar-heading-track" id="css-heading-track">
+                <!-- JS will populate -->
+              </div>
             </div>
+
             <div class="sidebar-controls">
 
               <div class="quick-templates-section">
@@ -108,7 +113,6 @@
                   <i class="fa-solid fa-bolt"></i> QUICK TEMPLATES
                 </div>
                 <div class="templates-scroll-track">
-                  <!-- Duplicated set = seamless 50%-translate infinite loop -->
                   <div class="templates-grid" id="css-templates-grid">
                     <button class="tpl-btn" onclick="setTemplatePrompt('css','Dark card component with neon glow shadow')">Dark card</button>
                     <button class="tpl-btn" onclick="setTemplatePrompt('css','Gradient hero banner canvas theme layout')">Hero banner</button>
@@ -122,10 +126,14 @@
                 </div>
               </div>
 
-              <div class="describe-section">
-                <div class="section-label">
-                  <i class="fa-solid fa-pen-to-square"></i> Describe layout requirements
+              <!-- MARQUEE 2: DESCRIBE WHAT YOU WANT -->
+              <div class="describe-marquee-wrap" id="css-describe-marquee">
+                <div class="describe-marquee-track" id="css-describe-track">
+                  <!-- JS will populate -->
                 </div>
+              </div>
+
+              <div class="describe-section">
                 <textarea class="describe-input" id="css-prompt-input" placeholder="Type structural layout directions..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="css-format-select" onchange="triggerLiveAiGeneration()">
@@ -206,9 +214,13 @@
         <div class="workspace-split">
 
           <aside class="left-sidebar">
-            <div class="sidebar-heading">
-              <span class="heading-dot js-dot"></span>DESCRIBE YOUR RUNTIME
+
+            <!-- MARQUEE 1: DESCRIBE YOUR RUNTIME -->
+            <div class="sidebar-heading marquee-rtl js-marquee">
+              <div class="sidebar-heading-track" id="js-heading-track">
+              </div>
             </div>
+
             <div class="sidebar-controls">
 
               <div class="quick-templates-section">
@@ -225,8 +237,13 @@
                 </div>
               </div>
 
+              <!-- MARQUEE 2: DESCRIBE WHAT YOU WANT -->
+              <div class="describe-marquee-wrap" id="js-describe-marquee">
+                <div class="describe-marquee-track" id="js-describe-track">
+                </div>
+              </div>
+
               <div class="describe-section">
-                <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe runtime script logic</div>
                 <textarea class="describe-input" id="js-prompt-input" placeholder="Type functional script instructions..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="js-format-select" onchange="triggerLiveAiGeneration()">
@@ -307,9 +324,13 @@
         <div class="workspace-split">
 
           <aside class="left-sidebar">
-            <div class="sidebar-heading">
-              <span class="heading-dot html-dot"></span>DESCRIBE YOUR DOM
+
+            <!-- MARQUEE 1: DESCRIBE YOUR DOM -->
+            <div class="sidebar-heading marquee-ltr html-marquee">
+              <div class="sidebar-heading-track" id="html-heading-track">
+              </div>
             </div>
+
             <div class="sidebar-controls">
 
               <div class="quick-templates-section">
@@ -326,8 +347,13 @@
                 </div>
               </div>
 
+              <!-- MARQUEE 2: DESCRIBE WHAT YOU WANT -->
+              <div class="describe-marquee-wrap" id="html-describe-marquee">
+                <div class="describe-marquee-track" id="html-describe-track">
+                </div>
+              </div>
+
               <div class="describe-section">
-                <div class="section-label"><i class="fa-solid fa-pen-to-square"></i> Describe custom element goals</div>
                 <textarea class="describe-input" id="html-prompt-input" placeholder="Type document node directives..."></textarea>
                 <div class="options-row">
                   <select class="option-select" id="html-format-select" onchange="triggerLiveAiGeneration()">
@@ -405,18 +431,57 @@
     </main>
   </div><!-- /#main-workspace -->
 
-  <!-- ── Toast notification ── -->
+  <!-- ── Toast ── -->
   <div class="toast" id="global-toast">
     <i class="fa-solid fa-circle-check"></i>
     <span id="toast-text">Action completed!</span>
   </div>
 
-  <!-- ── Scripts (order matters) ──
-       1. space.js   — starfield canvas + new-tab helpers (getActiveTab defined here)
-       2. script.js  — core app logic (may redefine getActiveTab, that's fine)
-  -->
   <script src="space.js"></script>
   <script src="script.js"></script>
 
+  <!-- Marquee population -->
+  <script>
+    (function() {
+      const configs = {
+        css: {
+          heading: { text: 'DESCRIBE YOUR STYLE!', sep: '✦', dir: 'ltr' },
+          describe: { text: 'DESCRIBE WHAT YOU WANT', sep: '◈' }
+        },
+        js: {
+          heading: { text: 'DESCRIBE YOUR RUNTIME', sep: '⚡', dir: 'rtl' },
+          describe: { text: 'DESCRIBE WHAT YOU WANT', sep: '◈' }
+        },
+        html: {
+          heading: { text: 'DESCRIBE YOUR DOM', sep: '◆', dir: 'ltr' },
+          describe: { text: 'DESCRIBE WHAT YOU WANT', sep: '◈' }
+        }
+      };
+
+      function buildMarquee(trackEl, text, sep, itemClass, sepClass, repeat) {
+        const chunk = document.createDocumentFragment();
+        for (let i = 0; i < repeat; i++) {
+          const span = document.createElement('span');
+          span.className = itemClass;
+          span.textContent = text;
+          const dot = document.createElement('span');
+          dot.className = sepClass;
+          dot.textContent = ' ' + sep + ' ';
+          chunk.appendChild(span);
+          chunk.appendChild(dot);
+        }
+        trackEl.appendChild(chunk);
+      }
+
+      Object.entries(configs).forEach(([lang, cfg]) => {
+        const hTrack = document.getElementById(lang + '-heading-track');
+        if (hTrack) buildMarquee(hTrack, cfg.heading.text, cfg.heading.sep, 'marquee-item', 'marquee-sep', 20);
+
+        const dTrack = document.getElementById(lang + '-describe-track');
+        if (dTrack) buildMarquee(dTrack, cfg.describe.text, cfg.describe.sep, 'describe-marquee-item', 'describe-marquee-sep', 20);
+      });
+    })();
+  </script>
+
 </body>
-                  </html>
+</html>
