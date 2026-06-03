@@ -413,10 +413,31 @@ function syncAllSandboxes() {
   syncRuntimeSandbox('js');
 }
 
-function syncRuntimeSandbox(lang) {
-  const frameElement = document.getElementById(`${lang}-sandbox-frame`);
-  if(!frameElement) return;
+function buildSandboxDoc(liveHtml, liveCss, liveJs) {
+  const runnableScript = sanitizeRunnableScript(liveJs);
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background: #ffffff; color: #121620; padding: 20px; font-family: sans-serif; margin:0; }
+    ${liveCss}
+  </style>
+</head>
+<body>
+  ${liveHtml}
+  <script>
+    try {
+      const userScript = ${JSON.stringify(runnableScript)};
+      new Function(userScript)();
+    } catch(e) { console.error("Sandbox Execution Error:", e); }
+  <\/script>
+</body>
+</html>`;
+}
 
+function syncRuntimeSandbox(lang) {
   const liveHtml = document.getElementById('html-preview-editor') ? document.getElementById('html-preview-editor').value : appState.html.activeCode;
   const liveCss = document.getElementById('css-preview-editor') ? document.getElementById('css-preview-editor').value : appState.css.activeCode;
   const liveJs = document.getElementById('js-preview-editor') ? document.getElementById('js-preview-editor').value : appState.js.activeCode;
@@ -425,31 +446,15 @@ function syncRuntimeSandbox(lang) {
   appState.css.activeCode = liveCss;
   appState.js.activeCode = liveJs;
 
-  const runnableScript = sanitizeRunnableScript(liveJs);
+  const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
 
-  let runtimeBlobContext = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { background: #ffffff; color: #121620; padding: 20px; font-family: sans-serif; margin:0; }
-        ${liveCss}
-      </style>
-    </head>
-    <body>
-      ${liveHtml}
-      <script>
-        try {
-          const userScript = ${JSON.stringify(runnableScript)};
-          new Function(userScript)();
-        } catch(e) { console.error("Sandbox Execution Error:", e); }
-      </script>
-    </body>
-    </html>
-  `;
+  // Desktop sidebar preview iframe
+  const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
+  if(sidebarFrame) sidebarFrame.srcdoc = doc;
 
-  frameElement.srcdoc = runtimeBlobContext;
+  // Mobile/tablet center preview iframe
+  const mobileFrame = document.getElementById(`${lang}-mobile-sandbox-frame`);
+  if(mobileFrame) mobileFrame.srcdoc = doc;
 }
 
 function setGeneratingState(lang, isGenerating) {
