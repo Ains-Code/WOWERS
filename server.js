@@ -14,7 +14,8 @@ app.use(express.json({ limit: '1mb' }));
 // ✅ API routes BEFORE static middleware so they are never shadowed
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
-const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '2500', 10);
+// Increased default to 4000 — full HTML+CSS+JS JSON easily exceeds 2500 tokens
+const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '4000', 10);
 
 function normalizeOpenRouterKey(value) {
   return String(value || '').trim().replace(/^Bearer\s+/i, '');
@@ -51,6 +52,37 @@ function shouldRetryWithoutJsonMode(status, data) {
   return message.includes('response_format') || message.includes('json') || message.includes('structured');
 }
 
+/**
+ * Extract text from an OpenRouter choices response.
+ * Handles both string content and content-array (multi-part) formats.
+ */
+function extractChoiceText(rawOutput) {
+  if (typeof rawOutput === 'string') return rawOutput;
+  if (Array.isArray(rawOutput)) {
+    return rawOutput
+      .map(item => (typeof item === 'string' ? item : (item?.text ?? '')))
+      .join('');
+  }
+  return '';
+}
+
+/**
+ * Validate that the text looks like it contains a JSON object.
+ * Returns { valid, reason } — does NOT throw.
+ */
+function validateJsonText(text) {
+  if (!text || text.trim().length < 20) {
+    return { valid: false, reason: `Response too short (${text?.length ?? 0} chars)` };
+  }
+  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  const first = stripped.indexOf('{');
+  const last  = stripped.lastIndexOf('}');
+  if (first < 0 || last <= first) {
+    return { valid: false, reason: 'No JSON object braces found in response' };
+  }
+  return { valid: true, reason: null };
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
@@ -66,7 +98,9 @@ app.post('/api/generate', async (req, res) => {
     const openRouterKey = getOpenRouterKey(req);
 
     if (!openRouterKey) {
-      return res.status(401).json({ error: 'Missing authentication header. Set OPENROUTER_KEY on the server, or provide an OpenRouter key in the app.' });
+      return res.status(401).json({
+        error: 'Missing authentication header. Set OPENROUTER_KEY on the server, or provide an OpenRouter key in the app.'
+      });
     }
     if (typeof systemPrompt !== 'string' || !systemPrompt.trim()) {
       return res.status(400).json({ error: 'systemPrompt is required.' });
@@ -76,11 +110,11 @@ app.post('/api/generate', async (req, res) => {
     }
 
     const controller = new AbortController();
-    timeout = setTimeout(() => controller.abort(), 45000);
+    timeout = setTimeout(() => controller.abort(), 55000); // increased from 45s
 
     const requestPayload = {
       model: model || DEFAULT_MODEL,
-      max_tokens: Number.isFinite(MAX_TOKENS) ? MAX_TOKENS : 1500,
+      max_tokens: Number.isFinite(MAX_TOKENS) ? MAX_TOKENS : 4000,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -104,6 +138,7 @@ app.post('/api/generate', async (req, res) => {
 
     let data = await readOpenRouterBody(response);
 
+    // Retry without json_object mode if the model doesn't support it
     if (!response.ok && shouldRetryWithoutJsonMode(response.status, data)) {
       console.log('Retrying without JSON mode due to response format error');
       const fallbackPayload = { ...requestPayload };
@@ -121,57 +156,48 @@ app.post('/api/generate', async (req, res) => {
 
     if (!response.ok) {
       const errorMsg = getOpenRouterErrorMessage(data);
-      console.error('OpenRouter API Error:', {
-        status: response.status,
-        error: errorMsg,
-        rawData: data
-      });
+      console.error('OpenRouter API Error:', { status: response.status, error: errorMsg, rawData: data });
       return res.status(response.status).json({ error: errorMsg });
     }
 
     const rawOutput = data?.choices?.[0]?.message?.content;
-    
-    // Handle both string and array responses
-    let textOutput = '';
-    if (typeof rawOutput === 'string') {
-      textOutput = rawOutput;
-    } else if (Array.isArray(rawOutput)) {
-      textOutput = rawOutput
-        .map(item => (typeof item === 'string' ? item : item?.text || ''))
-        .join('');
-    }
+    const textOutput = extractChoiceText(rawOutput);
 
-    if (typeof textOutput !== 'string' || !textOutput.trim()) {
-      console.error('Empty OpenRouter response:', data);
-      return res.status(502).json({ error: 'OpenRouter returned an empty response.' });
-    }
-
-    // Validate JSON response before sending
-    try {
-      // Try to parse to ensure it's valid JSON
-      JSON.parse(textOutput.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '').trim());
-    } catch (parseErr) {
-      console.warn('OpenRouter response is not valid JSON:', {
-        error: parseErr.message,
-        responseLength: textOutput.length,
-        preview: textOutput.slice(0, 200)
+    if (!textOutput.trim()) {
+      console.error('Empty OpenRouter response:', JSON.stringify(data).slice(0, 400));
+      return res.status(502).json({
+        error: 'OpenRouter returned an empty response. The model may have hit a token or content limit.'
       });
-      // Still send it, let the client handle the error
     }
 
-    res.json({ 
-      content: [{ 
-        type: 'text', 
-        text: textOutput 
-      }] 
+    // Warn in logs if the response looks malformed, but still forward it so
+    // the client's own JSON-repair logic gets a chance to fix it.
+    const { valid, reason } = validateJsonText(textOutput);
+    if (!valid) {
+      console.warn('OpenRouter response may not be valid JSON:', {
+        reason,
+        responseLength: textOutput.length,
+        finishReason: data?.choices?.[0]?.finish_reason,
+        preview: textOutput.slice(0, 300)
+      });
+    }
+
+    // Surface finish_reason so the client can show a helpful message when
+    // the model stopped early due to token limits.
+    const finishReason = data?.choices?.[0]?.finish_reason ?? 'unknown';
+
+    res.json({
+      content: [{ type: 'text', text: textOutput }],
+      finish_reason: finishReason
     });
+
   } catch (error) {
     if (timeout) clearTimeout(timeout);
     const isAbort = error?.name === 'AbortError';
     console.error('API Proxy Error:', error);
     res.status(isAbort ? 504 : 500).json({
-      error: isAbort 
-        ? 'OpenRouter request timed out (45 seconds). Try a shorter prompt or check API status.' 
+      error: isAbort
+        ? 'OpenRouter request timed out (55 seconds). Try a shorter prompt or check API status.'
         : error.message || 'Failed to communicate with AI.'
     });
   }
