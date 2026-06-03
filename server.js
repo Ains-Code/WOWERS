@@ -14,7 +14,7 @@ app.use(express.json({ limit: '1mb' }));
 // ✅ API routes BEFORE static middleware so they are never shadowed
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
-const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '1500', 10);
+const MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MAX_TOKENS || '2500', 10);
 
 function normalizeOpenRouterKey(value) {
   return String(value || '').trim().replace(/^Bearer\s+/i, '');
