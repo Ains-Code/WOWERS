@@ -204,17 +204,20 @@ body.auth-mode .workspace-wrapper { display: none; }
   min-height: 0;
 }
 
-.panel {
-  display: none;
+/* FIX: panel.active is flex + column on ALL breakpoints so children size correctly */
+.panel { display: none; width: 100%; }
+.panel.active {
+  display: flex;
+  flex-direction: column;
   width: 100%;
 }
-.panel.active { display: block; }
 
 /* ============ MOBILE LAYOUT — stacked single column ============ */
 .workspace-split {
   display: flex;
   flex-direction: column;
   width: 100%;
+  flex: 1;
 }
 
 .left-sidebar {
@@ -223,6 +226,7 @@ body.auth-mode .workspace-wrapper { display: none; }
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar-heading {
@@ -232,11 +236,13 @@ body.auth-mode .workspace-wrapper { display: none; }
   color: var(--text-main);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
 }
 
 .sidebar-controls {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .quick-templates-section {
@@ -330,6 +336,7 @@ body.auth-mode .workspace-wrapper { display: none; }
   flex-direction: column;
   background: var(--bg);
   width: 100%;
+  flex: 1;
   min-height: 400px;
 }
 
@@ -338,7 +345,9 @@ body.auth-mode .workspace-wrapper { display: none; }
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 16px; flex-shrink: 0;
+  padding: 0 16px;
+  flex-shrink: 0;
+  /* Sticky below the navbar (52px) on mobile/tablet */
   position: sticky;
   top: 52px;
   z-index: 50;
@@ -361,11 +370,17 @@ body.auth-mode .workspace-wrapper { display: none; }
 .out-tab:not(.active):hover { color: var(--text-main); }
 
 .output-pane { display: none; }
-.output-pane.active { display: flex; flex-direction: column; }
+.output-pane.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
 
 .code-wrap {
   padding: 16px;
   overflow: auto;
+  flex: 1;
   min-height: 300px;
 }
 
@@ -390,12 +405,14 @@ pre {
 
 .preview-wrap {
   display: flex; flex-direction: column;
+  flex: 1;
   min-height: 500px;
 }
 
 .preview-panel-box {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 250px;
 }
 .preview-panel-box:first-child {
@@ -415,7 +432,8 @@ pre {
 
 .preview-html-input {
   width: 100%;
-  min-height: 250px;
+  flex: 1;
+  min-height: 220px;
   background: var(--bg); border: none;
   resize: vertical; outline: none; padding: 14px;
   color: #94a8c8; font-family: var(--mono); font-size: 12px;
@@ -429,6 +447,7 @@ iframe {
   border: none;
   background: #ffffff;
   display: block;
+  flex-shrink: 0;
 }
 
 /* Right explanation — hidden on mobile */
@@ -451,7 +470,7 @@ iframe {
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-/* Explanation text styles — used on desktop */
+/* Explanation text styles */
 .explanation-title {
   font-size: 15px; font-weight: 700;
   letter-spacing: 0.08em; color: var(--text-main);
@@ -497,7 +516,6 @@ iframe {
 
   .templates-grid { grid-template-columns: repeat(3, 1fr); }
 
-  .center-output { min-height: 500px; }
   .preview-wrap { min-height: 600px; }
   .preview-panel-box { min-height: 300px; }
   .preview-html-input { min-height: 300px; }
@@ -506,7 +524,7 @@ iframe {
 
 
 /* ============================================================
-   DESKTOP (≥901px) — fixed 3-column layout
+   DESKTOP (≥901px) — fixed 3-column layout, no page scroll
    ============================================================ */
 @media (min-width: 901px) {
   html, body {
@@ -526,11 +544,12 @@ iframe {
     flex-direction: column;
   }
 
-  /* Navbar: taller, not sticky (body is fixed anyway) */
+  /* Navbar: taller, not sticky (body is overflow:hidden anyway) */
   .top-navbar {
     height: 56px;
     position: relative;
     top: auto;
+    z-index: auto;
     flex-shrink: 0;
   }
 
@@ -542,11 +561,13 @@ iframe {
     overflow: hidden;
   }
 
-  /* Active panel is a flex row */
-  .panel { display: none; height: 100%; }
+  /* Active panel: horizontal flex row filling full height */
+  .panel { display: none; height: 100%; width: 100%; }
   .panel.active {
     display: flex;
+    flex-direction: row;  /* override column from base */
     height: 100%;
+    width: 100%;
   }
 
   /* 3-column horizontal split */
@@ -555,6 +576,7 @@ iframe {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    flex: 1;
   }
 
   /* ── LEFT SIDEBAR ── */
@@ -614,6 +636,7 @@ iframe {
     flex-direction: column;
   }
 
+  /* Not sticky on desktop */
   .output-topbar {
     position: static;
     top: auto;
@@ -656,6 +679,8 @@ iframe {
     flex: 1;
     min-height: 0;
     height: 0;
+    display: flex;
+    flex-direction: column;
   }
   .preview-html-input {
     flex: 1;
@@ -664,7 +689,7 @@ iframe {
     min-height: 0;
     resize: none;
   }
-  iframe { height: 100%; min-height: 0; }
+  iframe { flex: 1; height: 0; min-height: 0; }
 
   /* ── RIGHT EXPLANATION ── */
   .right-explanation {
@@ -687,4 +712,4 @@ iframe {
   .navbar-logo { width: 64px; height: 56px; }
   .logo-icon { width: 40px; height: 40px; font-size: 13px; }
   .nav-action-btn .btn-label { display: inline; }
-     }
+   }
