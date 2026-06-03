@@ -545,3 +545,176 @@ body.auth-mode #main-application-container {
   0% { clip: rect(12px, 9999px, 66px, 0); }
   100% { clip: rect(84px, 9999px, 120px, 0); }
   }
+
+/* ===== MOBILE RESPONSIVE LAYOUT ===== */
+@media (max-width: 768px) {
+
+  /* Header: stack vertically, tabs sa gitna */
+  .app-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .logo-area {
+    display: none;
+  }
+
+  .main-tabs {
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .nav-tab {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .view-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 6px;
+    display: none; /* hidden on mobile - replaced by bottom buttons */
+  }
+
+  /* Ticker */
+  .ticker-section {
+    padding: 8px 0;
+  }
+
+  /* Workspace: full height, stacked */
+  .workspace-layout {
+    height: calc(100vh - 80px);
+  }
+
+  .panel.active {
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Control bar: vertical stack */
+  .panel-control-bar {
+    flex-direction: column;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .prompt-input {
+    width: 100%;
+    font-size: 13px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+  }
+
+  /* Dropdowns side by side */
+  .panel-control-bar .select-menu {
+    width: 48%;
+    height: 38px;
+    font-size: 11px;
+  }
+
+  /* Make dropdowns go side by side */
+  .panel-control-bar {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .panel-control-bar select:nth-of-type(1),
+  .panel-control-bar select:nth-of-type(2) {
+    flex: 1;
+  }
+
+  /* Generate button full width */
+  .generate-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* Split pane becomes single column */
+  .workspace-split {
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Code pane takes upper half */
+  .workspace-column-code {
+    width: 100%;
+    height: 55%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Sandbox/preview takes lower half */
+  .workspace-column-sandbox {
+    width: 100%;
+    height: 45%;
+  }
+
+  /* Sub-tabs (CODE / PREVIEW) */
+  .sub-tabs {
+    display: flex;
+  }
+
+  .sub-tab {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  /* Bottom floating action buttons - CSS CODE EDITOR / LIVE PREVIEW */
+  .mobile-bottom-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    z-index: 100;
+    background: rgba(2, 2, 5, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .mobile-bottom-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-bottom-btn:hover {
+    background: rgba(0, 229, 255, 0.12);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  }
+
+  /* Add bottom padding so content isn't hidden behind fixed bar */
+  .workspace-layout {
+    padding-bottom: 60px;
+  }
+
+  /* Auth card full screen on mobile */
+  .auth-card {
+    width: 92vw;
+    padding: 28px 20px;
+  }
+}
