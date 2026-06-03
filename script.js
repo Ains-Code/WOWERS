@@ -438,9 +438,18 @@ function buildSandboxDoc(liveHtml, liveCss, liveJs) {
 }
 
 function syncRuntimeSandbox(lang) {
-  const liveHtml = document.getElementById('html-preview-editor') ? document.getElementById('html-preview-editor').value : appState.html.activeCode;
-  const liveCss = document.getElementById('css-preview-editor') ? document.getElementById('css-preview-editor').value : appState.css.activeCode;
-  const liveJs = document.getElementById('js-preview-editor') ? document.getElementById('js-preview-editor').value : appState.js.activeCode;
+  // Find the ACTIVE panel to read from its editors only
+  const activePanel = document.querySelector('.panel.active');
+  if (!activePanel) return;
+
+  // Read from editors in the active panel only
+  const htmlEditor = activePanel.querySelector('#html-preview-editor');
+  const cssEditor = activePanel.querySelector('#css-preview-editor');
+  const jsEditor = activePanel.querySelector('#js-preview-editor');
+
+  const liveHtml = htmlEditor ? htmlEditor.value : appState.html.activeCode;
+  const liveCss = cssEditor ? cssEditor.value : appState.css.activeCode;
+  const liveJs = jsEditor ? jsEditor.value : appState.js.activeCode;
 
   appState.html.activeCode = liveHtml;
   appState.css.activeCode = liveCss;
@@ -448,11 +457,10 @@ function syncRuntimeSandbox(lang) {
 
   const doc = buildSandboxDoc(liveHtml, liveCss, liveJs);
 
-  // Desktop sidebar preview iframe
+  // Update ALL sandbox iframes with the current code (they all render the same thing)
   const sidebarFrame = document.getElementById(`${lang}-sandbox-frame`);
   if(sidebarFrame) sidebarFrame.srcdoc = doc;
 
-  // Mobile/tablet center preview iframe
   const mobileFrame = document.getElementById(`${lang}-mobile-sandbox-frame`);
   if(mobileFrame) mobileFrame.srcdoc = doc;
 }
@@ -497,4 +505,4 @@ function showGlobalToast(msg) {
     toastElement.classList.add('show');
     setTimeout(() => { toastElement.classList.remove('show'); }, 2500);
   }
-}
+      }
