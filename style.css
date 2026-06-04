@@ -666,7 +666,7 @@ pre { font-family: var(--font-mono); font-size: 12px; line-height: 1.8; color: #
 
 .preview-html-input {
   width: 100%; flex: 1; min-height: 0;
-  background: var(--void); border: none; resize: none; outline: none; padding: 0;
+  background: var(--void); border: none; resize: none; outline: none; padding: 0; margin: 0;
   color: #6a8aaa; font-family: var(--font-mono); font-size: 12px; line-height: 1.8;
 }
 
@@ -881,4 +881,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-                 }
+                             }
