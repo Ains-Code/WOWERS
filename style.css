@@ -738,16 +738,16 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
    HIDE INACTIVE TAB BUTTON — Show only active view button
 ───────────────────────────────────────────────── */
 /* CSS Panel */
-#css-panel #css-pane-code.active ~ .output-bottombar #css-btn-preview { display: none; }
-#css-panel #css-pane-preview.active ~ .output-bottombar #css-btn-code { display: none; }
+#css-panel #css-pane-code.active ~ .output-bottombar #css-btn-preview { display: none !important; }
+#css-panel #css-pane-preview.active ~ .output-bottombar #css-btn-code { display: none !important; }
 
 /* JS Panel */
-#js-panel #js-pane-code.active ~ .output-bottombar #js-btn-preview { display: none; }
-#js-panel #js-pane-preview.active ~ .output-bottombar #js-btn-code { display: none; }
+#js-panel #js-pane-code.active ~ .output-bottombar #js-btn-preview { display: none !important; }
+#js-panel #js-pane-preview.active ~ .output-bottombar #js-btn-code { display: none !important; }
 
 /* HTML Panel */
-#html-panel #html-pane-code.active ~ .output-bottombar #html-btn-preview { display: none; }
-#html-panel #html-pane-preview.active ~ .output-bottombar #html-btn-code { display: none; }
+#html-panel #html-pane-code.active ~ .output-bottombar #html-btn-preview { display: none !important; }
+#html-panel #html-pane-preview.active ~ .output-bottombar #html-btn-code { display: none !important; }
 
 /* ─────────────────────────────────────────────────
    RIGHT EXPLANATION (hidden on mobile)
@@ -881,4 +881,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-   }
+}
