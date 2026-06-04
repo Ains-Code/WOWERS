@@ -630,7 +630,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
 .output-pane { display: none; }
 .output-pane.active {
   display: flex; flex-direction: column; flex: 1; min-height: 0;
-  max-height: 280px;
+  max-height: 280px !important;
 }
 
 .code-wrap {
@@ -864,7 +864,7 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
   /* ── Center output ── */
   .center-output  { flex: 1; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; max-height: none; }
   .output-pane    { display: none; flex: 1; min-height: 0; overflow: hidden; }
-  .output-pane.active { display: flex; flex: 1; height: 0; }
+  .output-pane.active { display: flex; flex: 1; }
   .code-wrap { flex: 1; height: 0; padding: 16px; overflow: auto; min-height: 0; display: flex; flex-direction: column; }
   .empty-state  { flex: 1; min-height: 0; height: auto; }
   .preview-wrap { flex: 1; height: 0; min-height: 0; display: flex; flex-direction: column; }
@@ -882,4 +882,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-   }
+     }
