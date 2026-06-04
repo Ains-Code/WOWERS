@@ -370,6 +370,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column; flex-shrink: 0;
+  max-height: 55vh; overflow-y: auto;
 }
 
 /* ─────────────────────────────────────────────────
@@ -620,7 +621,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
 .center-output {
   display: flex; flex-direction: column;
   background: var(--void); width: 100%;
-  flex: 1; min-height: 0;
+  flex: 0 1 auto; min-height: 0; max-height: 60vh;
 }
 
 /* Top bar hidden on mobile — tabs/actions moved to bottom */
@@ -629,7 +630,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
 /* ── Pane area fills available space ── */
 .output-pane { display: none; }
 .output-pane.active {
-  display: flex; flex-direction: column; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: 100%;
 }
 
 .code-wrap {
@@ -706,11 +707,11 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
 
 /* Action button row — full width like reference */
 .newtab-actions {
-  display: flex; padding: 8px 16px; gap: 8px;
+  display: flex; padding: 8px 16px; gap: 8px; width: 100%;
 }
 
 .newtab-btn {
-  flex: 1;
+  flex: 1; min-width: 0;
   background: transparent; border: 1px solid var(--border); color: var(--text-muted);
   padding: 9px 12px; font-family: var(--font-display); font-size: 9px; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase; border-radius: 3px; cursor: pointer;
@@ -865,4 +866,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-   }
+                                           }
