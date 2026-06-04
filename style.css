@@ -868,7 +868,7 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
   .empty-state  { flex: 1; min-height: 0; height: auto; }
   .preview-wrap { flex: 1; height: 0; min-height: 0; display: flex; flex-direction: column; }
   .preview-panel-box { flex: 1; min-height: 0; height: 0; display: flex; flex-direction: column; }
-  .preview-html-input { flex: 1; width: 100%; height: 0; min-height: 0; resize: none; }
+  .preview-html-input { flex: 1; width: 100%; height: 0; min-height: 0; resize: none; padding: 0; margin: 0; }
   iframe { flex: 1; height: 0; min-height: 0; }
   .output-bottombar { flex-shrink: 0; }
 
@@ -881,4 +881,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-                             }
+     }
