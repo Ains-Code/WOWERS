@@ -370,7 +370,6 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column; flex-shrink: 0;
-  max-height: 55vh; overflow-y: auto;
 }
 
 /* ─────────────────────────────────────────────────
@@ -621,7 +620,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
 .center-output {
   display: flex; flex-direction: column;
   background: var(--void); width: 100%;
-  flex: 0 1 auto; min-height: 0; max-height: 60vh;
+  flex: 1; min-height: 0;
 }
 
 /* Top bar hidden on mobile — tabs/actions moved to bottom */
@@ -630,7 +629,7 @@ body:not(.auth-mode) .hero-section  { display: none !important; }
 /* ── Pane area fills available space ── */
 .output-pane { display: none; }
 .output-pane.active {
-  display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: 100%;
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
 }
 
 .code-wrap {
@@ -667,7 +666,7 @@ pre { font-family: var(--font-mono); font-size: 12px; line-height: 1.8; color: #
 
 .preview-html-input {
   width: 100%; flex: 1; min-height: 0;
-  background: var(--void); border: none; resize: none; outline: none; padding: 14px;
+  background: var(--void); border: none; resize: none; outline: none; padding: 0;
   color: #6a8aaa; font-family: var(--font-mono); font-size: 12px; line-height: 1.8;
 }
 
@@ -786,6 +785,17 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
 /* ============================================================
    TABLET  ≥ 601px
    ============================================================ */
+/* ─────────────────────────────────────────────────
+   MOBILE  < 601px  — Stacked layout with proper sizing
+───────────────────────────────────────────────── */
+/* Defaults for mobile are already set above */
+.left-sidebar { max-height: 50vh; overflow-y: auto; }
+.center-output { max-height: 50vh; overflow-y: auto; }
+.output-pane.active { max-height: 100%; }
+
+/* ─────────────────────────────────────────────────
+   TABLET  601px - 900px  — Better spacing
+───────────────────────────────────────────────── */
 @media (min-width: 601px) {
   .templates-grid { gap: 10px; }
   .tpl-btn        { padding: 9px 18px; font-size: 9px; }
@@ -795,6 +805,10 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
   .marquee-item   { font-size: 13px; }
   .describe-marquee-wrap { height: 38px; }
   .describe-marquee-item { font-size: 11px; }
+  
+  /* Responsive fixes for tablet */
+  .left-sidebar { max-height: none; overflow-y: visible; }
+  .center-output { max-height: none; overflow-y: visible; }
 }
 
 /* ============================================================
@@ -821,6 +835,7 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     height: 100%; border-bottom: none;
     border-right: 1px solid var(--border);
     flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;
+    max-height: none;
   }
 
   /* Marquee header stays fixed height */
@@ -846,7 +861,7 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
   .sidebar-preview iframe { flex: 1; width: 100%; height: 0; min-height: 0; }
 
   /* ── Center output ── */
-  .center-output  { flex: 1; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; }
+  .center-output  { flex: 1; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; max-height: none; }
   .output-pane    { display: none; flex: 1; min-height: 0; overflow: hidden; }
   .output-pane.active { display: flex; flex: 1; height: 0; }
   .code-wrap { flex: 1; height: 0; padding: 16px; overflow: auto; min-height: 0; display: flex; flex-direction: column; }
@@ -866,4 +881,4 @@ iframe { width: 100%; height: 240px; border: none; background: #ffffff; display:
     border-left: 1px solid var(--border);
     padding: 20px 16px; overflow-y: auto; flex-shrink: 0;
   }
-                                           }
+                 }
